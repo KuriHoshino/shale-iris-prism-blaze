@@ -95,9 +95,14 @@ var BookOpen = createLucideIcon("book-open", [["path", {
 * This source code is licensed under the ISC license.
 * See the LICENSE file in the root directory of this source tree.
 */
-var Bookmark = createLucideIcon("bookmark", [["path", {
-	d: "m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z",
-	key: "1fy3hk"
+var Clock = createLucideIcon("clock", [["circle", {
+	cx: "12",
+	cy: "12",
+	r: "10",
+	key: "1mglay"
+}], ["polyline", {
+	points: "12 6 12 12 16 14",
+	key: "68esgv"
 }]]);
 /**
 * @license lucide-react v0.510.0 - ISC
@@ -182,26 +187,6 @@ var Hammer = createLucideIcon("hammer", [
 * This source code is licensed under the ISC license.
 * See the LICENSE file in the root directory of this source tree.
 */
-var Map = createLucideIcon("map", [
-	["path", {
-		d: "M14.106 5.553a2 2 0 0 0 1.788 0l3.659-1.83A1 1 0 0 1 21 4.619v12.764a1 1 0 0 1-.553.894l-4.553 2.277a2 2 0 0 1-1.788 0l-4.212-2.106a2 2 0 0 0-1.788 0l-3.659 1.83A1 1 0 0 1 3 19.381V6.618a1 1 0 0 1 .553-.894l4.553-2.277a2 2 0 0 1 1.788 0z",
-		key: "169xi5"
-	}],
-	["path", {
-		d: "M15 5.764v15",
-		key: "1pn4in"
-	}],
-	["path", {
-		d: "M9 3.236v15",
-		key: "1uimfh"
-	}]
-]);
-/**
-* @license lucide-react v0.510.0 - ISC
-*
-* This source code is licensed under the ISC license.
-* See the LICENSE file in the root directory of this source tree.
-*/
 var Percent = createLucideIcon("percent", [
 	["line", {
 		x1: "19",
@@ -245,6 +230,30 @@ var RefreshCw = createLucideIcon("refresh-cw", [
 	["path", {
 		d: "M8 16H3v5",
 		key: "1cv678"
+	}]
+]);
+/**
+* @license lucide-react v0.510.0 - ISC
+*
+* This source code is licensed under the ISC license.
+* See the LICENSE file in the root directory of this source tree.
+*/
+var Sprout = createLucideIcon("sprout", [
+	["path", {
+		d: "M7 20h10",
+		key: "e6iznv"
+	}],
+	["path", {
+		d: "M10 20c5.5-2.5.8-6.4 3-10",
+		key: "161w41"
+	}],
+	["path", {
+		d: "M9.5 9.4c1.1.8 1.8 2.2 2.3 3.7-2 .4-3.5.4-4.8-.3-1.2-.6-2.3-1.9-3-4.2 2.8-.5 4.4 0 5.5.8z",
+		key: "9gtqwd"
+	}],
+	["path", {
+		d: "M14.1 6a7 7 0 0 0-1.1 4c1.9-.1 3.3-.6 4.3-1.4 1-1 1.6-2.3 1.7-4.6-2.7.1-4 1-4.9 2z",
+		key: "bkxnd2"
 	}]
 ]);
 /**
@@ -301,5 +310,31 @@ var TriangleAlert = createLucideIcon("triangle-alert", [
 		key: "p32p05"
 	}]
 ]);
+/**
+* @license lucide-react v0.510.0 - ISC
+*
+* This source code is licensed under the ISC license.
+* See the LICENSE file in the root directory of this source tree.
+*/
+var Users = createLucideIcon("users", [
+	["path", {
+		d: "M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2",
+		key: "1yyitq"
+	}],
+	["path", {
+		d: "M16 3.128a4 4 0 0 1 0 7.744",
+		key: "16gr8j"
+	}],
+	["path", {
+		d: "M22 21v-2a4 4 0 0 0-3-3.87",
+		key: "kshegd"
+	}],
+	["circle", {
+		cx: "9",
+		cy: "7",
+		r: "4",
+		key: "nufk8"
+	}]
+]);
 //#endregion
-export { Map as a, Dices as c, Percent as i, Bookmark as l, Trash2 as n, Hammer as o, RefreshCw as r, GraduationCap as s, TriangleAlert as t, BookOpen as u };
+export { RefreshCw as a, GraduationCap as c, BookOpen as d, Sprout as i, Dices as l, TriangleAlert as n, Percent as o, Trash2 as r, Hammer as s, Users as t, Clock as u };
