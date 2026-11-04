@@ -44,6 +44,7 @@ export function HourlyChart({
   side,
   usedCity,
   onUse,
+  cities = MARKETS,
 }: {
   server: ServerId
   itemId: string
@@ -52,6 +53,7 @@ export function HourlyChart({
   side: "sell" | "buy"
   usedCity: string
   onUse: (city: string, price: number | null) => void
+  cities?: readonly string[]
 }) {
   const [series, setSeries] = useState<HourSeries[]>([])
   const [error, setError] = useState("")
@@ -122,6 +124,7 @@ export function HourlyChart({
           series={series}
           lastByCity={lastByCity}
           onUse={onUse}
+          cities={cities}
         />
       ) : null}
     </div>
@@ -137,6 +140,7 @@ function CityGrid({
   series,
   lastByCity,
   onUse,
+  cities,
 }: {
   itemId: string
   quality: number
@@ -146,8 +150,9 @@ function CityGrid({
   series: HourSeries[]
   lastByCity: Map<string, { price: number; count: number; time: string }>
   onUse: (city: string, price: number | null) => void
+  cities: readonly string[]
 }) {
-  const rows = MARKETS.map((city) => {
+  const rows = cities.map((city) => {
     const quote = book[itemId]?.[city]?.[String(quality)]
     const sell = quote && quote.sell > 0 ? quote.sell : null
     const buy = quote && quote.buy > 0 ? quote.buy : null

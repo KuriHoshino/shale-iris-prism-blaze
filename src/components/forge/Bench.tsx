@@ -134,16 +134,8 @@ export function Bench() {
       if (row.low) matCities[mat.id] = row.low.city
     }
     autoCities.current = key
-    state.patch({ buyCity: product.low.city, sellCity: product.high.city })
-    state.patchLine(line.uid, { shopCity: product.low.city, sellAt: product.high.city, matCities })
-  }, [item, line, variant, state])
-
-  const cities = useMemo(() => {
-    if (!item || !line || !variant) return []
-    return CRAFT_CITIES.map((city) => {
-      const result = evaluateLine({ ...line, place: "city", city }, state)
-      return { city, profit: result?.math.profit ?? null, rrr: result?.math.rrr ?? 0 }
-    }).sort((a, b) => (b.profit ?? -Infinity) - (a.profit ?? -Infinity))
+    state.patch({ buyCity: product.low.city })
+    state.patchLine(line.uid, { shopCity: product.low.city, matCities })
   }, [item, line, variant, state])
 
   const shop = useMemo(() => {
@@ -471,24 +463,6 @@ export function Bench() {
           {state.priceError ? <p className="mt-2 text-sm text-ember">{state.priceError}</p> : null}
           <div className="mt-3 grid grid-cols-2 gap-3">
             <Select
-              label="Buy in"
-              value={(CRAFT_CITIES as readonly string[]).includes(line.shopCity || state.buyCity) ? line.shopCity || state.buyCity : CRAFT_CITIES[0]}
-              onChange={(buyCity) => {
-                state.patch({ buyCity })
-                state.patchLine(line.uid, { shopCity: buyCity })
-              }}
-              options={CRAFT_CITIES.map((city) => ({ value: city, label: city }))}
-            />
-            <Select
-              label="Sell in"
-              value={sellAt}
-              onChange={(sellCity) => {
-                state.patch({ sellCity })
-                state.patchLine(line.uid, { sellAt: sellCity })
-              }}
-              options={MARKETS.map((city) => ({ value: city, label: city }))}
-            />
-            <Select
               label="Buy as"
               value={state.buyMode}
               onChange={(buyMode) => state.patch({ buyMode: buyMode as typeof state.buyMode })}
@@ -535,13 +509,10 @@ export function Bench() {
             itemName={`${item.name} .${variant.enchant}`}
             quality={state.quality}
             side={state.sellMode === "instant" ? "buy" : "sell"}
-            usedCity={line.shopCity || state.buyCity}
+            usedCity={sellAt}
             onUse={(city, price) => {
-              state.patch({ buyCity: city })
-              state.patchLine(line.uid, {
-                shopCity: city,
-                ...(price != null ? { productOverride: price } : {}),
-              })
+              state.patch({ sellCity: city })
+              state.patchLine(line.uid, { sellAt: city, productOverride: price })
             }}
           />
           <div className="mt-4 flex flex-col gap-2">
@@ -554,12 +525,13 @@ export function Bench() {
               onChange={(productOverride) => state.patchLine(line.uid, { productOverride })}
               cityLabel="Sell in"
               city={sellAt}
-              cities={citiesWith(state.prices, productId, state.quality, state.sellMode === "instant" ? "buy" : "sell", sellAt)}
-              age={quoteAge(state.prices, productId, sellAt, state.quality, state.sellMode === "instant" ? "buy" : "sell")}
+              cities={liveSellOptions(state.prices, productId, state.quality, state.sellMode === "instant" ? "buy" : "sell")}
               onCity={(city) => {
                 state.patch({ sellCity: city })
-                state.patchLine(line.uid, { sellAt: city })
+                state.patchLine(line.uid, { sellAt: city, productOverride: null })
               }}
+              priceBox={false}
+              manual
             />
             <div className="mt-2">
               <div className="flex items-center justify-between gap-3">
@@ -729,7 +701,7 @@ export function Bench() {
           <p className={"font-sans text-4xl font-semibold tabular-nums tracking-tight " + profitClass}>{silver(math.profit)}</p>
           <p className="mt-1 text-sm text-muted">
             {math.profit == null
-              ? "Need prices"
+              ? `Need prices${math.missing.length ? ` for ${[...new Set(math.missing)].map((id) => (id === "product" ? "the item" : id === "journal" ? "the journal" : matName(id))).join(", ")}` : ""}`
               : `${silver(math.profit / Math.max(1, math.items))} each · ${math.margin == null ? "—" : pct(math.margin)} margin`}
             {evaluated?.stoodIn.length ? " · a missing city quote was filled from another market" : ""}
           </p>
@@ -750,6 +722,7 @@ export function Bench() {
               label="Journals"
               value={math.journalRows.length ? math.journalRows.map((row) => `T${row.tier} ${exact(row.count)}`).join(" · ") : "Off"}
             />
+            <Stat label="Journal profit" value={math.journalRows.length ? silver(math.journalProfit) : "—"} />
           </dl>
           <p className="mt-3 text-xs text-muted">
             {focusEach <= 0
@@ -761,26 +734,6 @@ export function Bench() {
               ? "Need prices to value the focus."
               : `Using focus ${focusGain >= 0 ? "adds" : "loses"} ${silver(Math.abs(focusGain))} on this batch, ${silver(perFocus)} per focus. 10,000 focus is about ${silver(fromPool)}.`}
           </p>
-        </section>
-        <section className="rounded-lg border border-line bg-panel p-4">
-          <h3 className="text-sm font-semibold text-parchment">Same recipe, other cities</h3>
-          <ul className="mt-2 flex flex-col">
-            {cities.map((city) => (
-              <li key={city.city}>
-                <button
-                  type="button"
-                  onClick={() => state.patchLine(line.uid, { city: city.city, place: "city" })}
-                  className="flex w-full items-baseline justify-between gap-3 py-2 text-left text-sm"
-                >
-                  <span className={city.city === line.city && line.place === "city" ? "text-brass" : "text-parchment"}>
-                    {city.city}
-                    <span className="ml-2 text-xs text-muted">{pct(city.rrr)}</span>
-                  </span>
-                  <span className="tabular-nums text-muted">{city.profit == null ? pct(city.rrr) : silver(city.profit)}</span>
-                </button>
-              </li>
-            ))}
-          </ul>
         </section>
       </aside>
     </div>
@@ -884,15 +837,26 @@ function MatCard({
   )
 }
 
+function liveSellOptions(book: PriceBook, id: string, quality: number, side: "sell" | "buy") {
+  return MARKETS.map((city) => {
+    const quote = readQuote(book, id, city, quality)
+    const price = moneySide(quote, side)
+    const age = priceAge(side === "sell" ? quote?.sellDate : quote?.buyDate)
+    if (price == null) return { value: city, label: `${city} · no order` }
+    return { value: city, label: age ? `${city} · ${silver(price)} · ${age}` : `${city} · ${silver(price)}` }
+  })
+}
+
 function citiesWith(
   book: PriceBook,
   id: string,
   quality: number,
   side: "sell" | "buy",
   current: string,
+  places: readonly string[] = MARKETS,
 ) {
-  const listed = MARKETS.filter((city) => moneySide(readQuote(book, id, city, quality), side) != null)
-  const cities = listed.length ? listed : [...MARKETS]
+  const listed = places.filter((city) => moneySide(readQuote(book, id, city, quality), side) != null)
+  const cities = listed.length ? [...listed] : [...places]
   if (!cities.includes(current as (typeof MARKETS)[number])) cities.unshift(current as (typeof MARKETS)[number])
   return cities.map((city) => {
     const quote = readQuote(book, id, city, quality)
@@ -920,6 +884,8 @@ function PriceRow({
   cities,
   onCity,
   age,
+  priceBox = true,
+  manual = false,
 }: {
   role: string
   name: string
@@ -932,6 +898,8 @@ function PriceRow({
   cities: { value: string; label: string }[]
   onCity: (city: string) => void
   age?: string
+  priceBox?: boolean
+  manual?: boolean
 }) {
   const locked = value != null && market != null && value === market
   return (
@@ -942,31 +910,48 @@ function PriceRow({
         {hint ? <span className="ml-2 text-xs text-muted">using {hint}</span> : null}
       </span>
       <Select label={cityLabel} value={city} onChange={onCity} options={cities} />
-      <span className="flex items-center gap-2">
-        <span className="tabular-nums text-base text-parchment">
-          {market == null ? "No live order" : age ? `${silver(market)} · ${age}` : silver(market)}
-        </span>
-        <button
-          type="button"
-          disabled={market == null}
-          onClick={() => market != null && onChange(market)}
-          aria-label={`Put ${role} into the box`}
-          className={
-            "grid size-8 shrink-0 place-items-center rounded-md border " +
-            (locked ? "border-brass text-brass" : "border-line text-muted")
-          }
-        >
-          <Check className="size-4" />
-        </button>
-      </span>
-      <input
-        className={fieldClass}
-        inputMode="decimal"
-        placeholder="Type a price to override"
-        value={value ?? ""}
-        onChange={(event) => onChange(event.target.value === "" ? null : Number(event.target.value))}
-        aria-label={`${role}: ${name}`}
-      />
+      {manual ? (
+        <label className="text-xs text-muted">
+          Manual price
+          <input
+            className={fieldClass + " mt-1"}
+            inputMode="decimal"
+            placeholder={market == null ? "Leave empty for the live price" : `Live ${silver(market)}`}
+            value={value ?? ""}
+            onChange={(event) => onChange(event.target.value.trim() === "" ? null : Number(event.target.value))}
+            aria-label={`Manual price for ${name}`}
+          />
+        </label>
+      ) : null}
+      {priceBox ? (
+        <>
+          <span className="flex items-center gap-2">
+            <span className="tabular-nums text-base text-parchment">
+              {market == null ? "No live order" : age ? `${silver(market)} · ${age}` : silver(market)}
+            </span>
+            <button
+              type="button"
+              disabled={market == null}
+              onClick={() => market != null && onChange(market)}
+              aria-label={`Put ${role} into the box`}
+              className={
+                "grid size-8 shrink-0 place-items-center rounded-md border " +
+                (locked ? "border-brass text-brass" : "border-line text-muted")
+              }
+            >
+              <Check className="size-4" />
+            </button>
+          </span>
+          <input
+            className={fieldClass}
+            inputMode="decimal"
+            placeholder="Type a price to override"
+            value={value ?? ""}
+            onChange={(event) => onChange(event.target.value === "" ? null : Number(event.target.value))}
+            aria-label={`${role}: ${name}`}
+          />
+        </>
+      ) : null}
     </div>
   )
 }

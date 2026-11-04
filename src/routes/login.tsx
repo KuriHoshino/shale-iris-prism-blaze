@@ -5,7 +5,7 @@ export const Route = createFileRoute("/login")({ component: Login })
 
 function Login() {
   return (
-    <main className="grid min-h-screen place-items-center bg-ink p-6 text-parchment">
+    <main className="grid min-h-screen place-items-center bg-transparent p-6 text-parchment">
       <div className="w-full max-w-sm space-y-3">
         <h1 className="font-display text-3xl">Sign in</h1>
         <p className="text-sm text-muted">Sign in with Google to keep saved crafts on your account.</p>

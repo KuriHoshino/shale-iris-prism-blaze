@@ -74,8 +74,8 @@ export function ForgeApp() {
   }, [])
 
   return (
-    <div className="min-h-screen bg-ink text-parchment">
-      <header className="sticky top-0 z-30 border-b border-line bg-ink/95 backdrop-blur">
+    <div className="min-h-screen bg-transparent text-parchment">
+      <header className="sticky top-0 z-30 border-b border-line bg-gradient-to-b from-[#1c1730]/80 to-[#0c0a12]/75 backdrop-blur-md">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3">
           <div>
             <p className="font-display text-xl leading-none">Hearthforge</p>
@@ -181,7 +181,7 @@ function useBootScreen() {
   return (
     <div
       className={
-        "fixed inset-0 z-50 flex flex-col items-center justify-center bg-ink transition-opacity duration-200 " +
+        "fixed inset-0 z-50 flex flex-col items-center justify-center bg-[#0c0a12] transition-opacity duration-200 " +
         (phase === "out" ? "pointer-events-none opacity-0" : "opacity-100")
       }
     >

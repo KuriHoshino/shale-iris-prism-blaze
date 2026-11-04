@@ -315,9 +315,11 @@ export function craftMath(opts: {
     consumed.push({ id: mat.id, qty: bought, unit, cost: priced })
     if (sold > 0) {
       leftovers.push({ id: mat.id, qty: sold })
-      const sell = opts.matSellUnit(mat.id)
-      if (sell == null) leftoverKnown = false
-      else leftoverValue += stackSell(sell, sold, opts.sellMode, opts.premium).net
+      const sell = opts.matSellUnit(mat.id) ?? opts.matUnit(mat.id)
+      if (sell == null) {
+        leftoverKnown = false
+        missing.push(mat.id)
+      } else leftoverValue += stackSell(sell, sold, opts.sellMode, opts.premium).net
     }
   }
 
@@ -355,17 +357,16 @@ export function craftMath(opts: {
     if (!known) missing.push("journal")
   }
 
+  const journalsPriced = fills.length === 0 || journalProfit != null
   const profit =
-    revenue == null || !materialKnown || !leftoverKnown
+    revenue == null || !materialKnown || !leftoverKnown || !journalsPriced
       ? null
-      : revenue +
-        leftoverValue +
-        (journalProfit ?? 0) -
-        materialCost -
-        fee -
-        silverCost
+      : revenue + leftoverValue + (journalProfit ?? 0) - materialCost - fee - silverCost
 
-  const spent = materialKnown ? materialCost + fee + silverCost + (journalProfit != null && journalProfit < 0 ? -journalProfit : 0) : null
+  const spent =
+    materialKnown && journalsPriced
+      ? materialCost + fee + silverCost + (journalProfit != null && journalProfit < 0 ? -journalProfit : 0)
+      : null
   const margin = profit != null && spent && spent > 0 ? profit / spent : null
 
   return {
