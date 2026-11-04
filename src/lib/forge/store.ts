@@ -5,7 +5,7 @@ import { fetchMarketPrices, loadMarketPrices } from "./prices"
 import type { BuyMode, Place, SellMode } from "./formulas"
 import type { ServerId, HoBiome, HoRegion } from "./rules"
 import { MARKETS } from "./rules"
-import { enchantStones, getItem, journalFor, marketId, setNameBook, variantOf } from "./lookup"
+import { enchantStones, getItem, journalFor, marketId, setNameBook, upgradeSource, variantOf } from "./lookup"
 import type { DeskSnapshot } from "./desk"
 
 export type Quote = PriceQuote
@@ -16,6 +16,8 @@ export type Line = {
   itemId: string
   enchant: number
   route: "direct" | "upgrade"
+  /** On an upgrade, craft the flat item or buy it. Defaults to buy. */
+  upgradeFrom?: "buy" | "craft"
   runs: number
   place: Place
   city: string
@@ -153,7 +155,7 @@ function collectIds(lines: Line[]): string[] {
   for (const line of lines) {
     const item = getItem(line.itemId)
     if (!item) continue
-    const variant = variantOf(item, line.enchant, line.route)
+    const variant = upgradeSource(item, variantOf(item, line.enchant, line.route), line.upgradeFrom === "craft" ? "craft" : "buy")
     ids.add(marketId(item.id, variant.enchant))
     for (const mat of variant.mats) ids.add(mat.id)
     if (line.flip && line.enchant > 0) {
@@ -234,6 +236,10 @@ export const useForge = create<ForgeState>()(
           line.specialist = current.specialist
           line.siblings = current.siblings
           line.runs = current.runs
+          line.enchant = current.enchant
+          line.route = current.route
+          line.sellAt = current.sellAt
+          line.shopCity = current.shopCity
         }
         const item = getItem(line.itemId)
         if (item?.journal) line.journalTier = Math.min(8, Math.max(2, item.tier))

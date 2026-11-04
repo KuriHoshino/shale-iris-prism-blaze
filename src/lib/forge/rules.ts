@@ -138,6 +138,17 @@ export function biomeFavors(biomeId: string | undefined, category: string): bool
   return (biome.crafts as readonly string[]).includes(category)
 }
 
+/** Hideout biome whose city bonus applies to this craft. Null when no city specializes in it. */
+export function bonusBiome(category: string): HoBiome | null {
+  let best: { id: HoBiome; score: number } | null = null
+  for (const biome of HO_BIOMES) {
+    if (!biomeFavors(biome.id, category)) continue
+    const score = specialtyBonus(biome.city, category)
+    if (!best || score > best.score) best = { id: biome.id, score }
+  }
+  return best?.id ?? null
+}
+
 /** Specialty points added by hideout level alone: 0 at level 1, 30 at level 9. */
 export function hideoutSpecPower(power: number): number {
   const level = clampStep(power, 1, 9, 1)

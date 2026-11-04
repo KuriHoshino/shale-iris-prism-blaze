@@ -56,6 +56,24 @@ export function variantOf(item: CraftItem, enchant: number, route: Variant["rout
   return mats.length ? { ...found, mats } : found
 }
 
+/** Craft the flat item, or keep buying it and only add the stones. */
+export function upgradeSource(item: CraftItem, variant: Variant, source: "buy" | "craft"): Variant {
+  if (source !== "craft" || variant.route !== "upgrade") return variant
+  const base =
+    item.variants.find((entry) => entry.enchant === 0 && entry.route === "direct") ??
+    item.variants.find((entry) => entry.enchant === 0)
+  if (!base) return variant
+  const stones = variant.mats.filter((mat) => isEnchantStone(mat.id))
+  const flat = variant.mats.find((mat) => !isEnchantStone(mat.id))
+  const copies = flat?.qty ?? 1
+  return {
+    ...variant,
+    focus: base.focus * copies + (variant.focus || 0),
+    silver: (base.silver || 0) * copies + (variant.silver || 0),
+    mats: [...base.mats.map((mat) => ({ ...mat, qty: mat.qty * copies })), ...stones],
+  }
+}
+
 /** Runes, souls, and relics to enchant a flat item up to this level. */
 export function enchantStones(item: CraftItem, enchant: number) {
   if (enchant < 1) return []

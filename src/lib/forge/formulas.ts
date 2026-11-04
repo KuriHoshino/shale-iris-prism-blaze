@@ -244,6 +244,8 @@ export function craftMath(opts: {
   premium: boolean
   buyMode: BuyMode
   sellMode: SellMode
+  /** Black Market sales have no tax. Falls back to sellMode. */
+  productSellMode?: SellMode
   leftover: "reuse" | "sell"
   stationRate: number
   productUnit: number | null
@@ -263,6 +265,7 @@ export function craftMath(opts: {
   const items = (opts.variant.output || 1) * runs
   const fameEach = opts.variant.fame * (opts.premium ? PREMIUM_FAME : 1)
   const fameTotal = fameEach * items
+  const journalFame = opts.variant.fame * items
   const fee = opts.flip ? 0 : stationFee(opts.variant.value, items, opts.tier, opts.stationRate)
   const nut = nutrition(opts.variant.value, items, opts.tier)
   const baseFocus = opts.focusOverride != null && opts.focusOverride >= 0 ? opts.focusOverride : opts.variant.focus
@@ -328,7 +331,7 @@ export function craftMath(opts: {
   if (opts.productUnit == null) {
     missing.push("product")
   } else {
-    revenue = stackSell(opts.productUnit, items, opts.sellMode, opts.premium).net
+    revenue = stackSell(opts.productUnit, items, opts.productSellMode ?? opts.sellMode, opts.premium).net
   }
 
   let journalProfit: number | null = null
@@ -336,7 +339,7 @@ export function craftMath(opts: {
   const journalRows: CraftMath["journalRows"] = []
   const fills = opts.flip ? [] : opts.journalFills.filter((fill) => fill.fame > 0)
   if (fills.length) {
-    const share = fameTotal / fills.length
+    const share = journalFame / fills.length
     let profit = 0
     let known = true
     for (const fill of fills) {

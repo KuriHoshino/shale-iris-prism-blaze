@@ -180,12 +180,14 @@ export async function loadMarketPrices(data: z.infer<typeof Input>) {
     const api = apiIds[index]
     if (api !== ids[index] && quotes[api]) quotes[ids[index]] = quotes[api]
   }
-  const missing = ids.filter((id) => !hasLivePrice(quotes, id)).slice(0, 12)
+  const missing = ids.filter((id) => !hasLivePrice(quotes, id)).slice(0, 24)
   for (const id of missing) {
     try {
-      const rows = await pullAfm(id)
+      const rows = await pullAfm(liveId(id))
       if (!rows.length) continue
       const item = (quotes[id] ??= {})
+      const api = liveId(id)
+      if (api !== id) quotes[api] = item
       for (const row of rows) {
         if (!row.sell && !row.buy) continue
         if (!data.locations.includes(row.city)) continue
@@ -287,7 +289,8 @@ async function readJson(url: string): Promise<{ status: number; body: unknown }>
 export async function loadHourlyPrices(data: z.infer<typeof HourInput>) {
   const loc = [...new Set(data.locations)].map((name) => encodeURIComponent(name)).join(",")
   const host = HOST
-  const historyUrl = `${host}/api/v2/stats/history/${data.itemId}.json?locations=${loc}&qualities=${data.quality}&time-scale=1`
+  const itemId = liveId(data.itemId)
+  const historyUrl = `${host}/api/v2/stats/history/${itemId}.json?locations=${loc}&qualities=${data.quality}&time-scale=1`
   const historyRes = await readJson(historyUrl).catch(() => ({ status: 0, body: null }))
   if (historyRes.status === 429) throw new Error("The data project is busy. The chart retries in a minute.")
   const bucket = new Map<string, HourPoint[]>()

@@ -19,6 +19,7 @@ export const DeskSchema = z.object({
         itemId: z.string().min(1).max(80),
         enchant: z.number().int().min(0).max(4),
         route: z.enum(["direct", "upgrade"]),
+        upgradeFrom: z.enum(["buy", "craft"]).optional(),
         runs: z.number().int().min(1).max(100000),
         place: z.enum(["city", "island", "hideout"]),
         city: z.string().min(1).max(40),
