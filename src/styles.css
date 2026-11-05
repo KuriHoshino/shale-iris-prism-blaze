@@ -3,15 +3,15 @@
 @theme {
   --font-display: "Fraunces", Georgia, serif;
   --font-sans: "Source Sans 3", "Segoe UI", sans-serif;
-  --color-ink: #14110e;
-  --color-panel: #211c16;
-  --color-panel-2: #2c261e;
-  --color-line: #44392c;
-  --color-brass: #e0a85c;
-  --color-parchment: #f3eadc;
-  --color-muted: #b3a38f;
-  --color-sage: #8fbf9f;
-  --color-ember: #e07a5f;
+  --color-ink: #121418;
+  --color-panel: #1a1d24;
+  --color-panel-2: #22262e;
+  --color-line: #343a46;
+  --color-brass: #d4b483;
+  --color-parchment: #f4f1ea;
+  --color-muted: #a7adba;
+  --color-sage: #8fb9a0;
+  --color-ember: #e08b78;
 }
 
 @layer base {
@@ -21,8 +21,9 @@
   }
 
   html {
-    background-color: #0c0a12;
+    background-color: #07060f;
     color: var(--color-parchment);
+    overflow-x: clip;
   }
 
   body {
@@ -30,13 +31,58 @@
     min-height: 100vh;
     font-family: var(--font-sans);
     color: var(--color-parchment);
-    background-color: #0c0a12;
+    background-color: #07060f;
     background-image:
-      radial-gradient(ellipse 90% 55% at 8% -8%, rgba(0, 255, 214, 0.22), transparent 58%),
-      radial-gradient(ellipse 75% 50% at 108% 0%, rgba(255, 45, 175, 0.2), transparent 52%),
-      radial-gradient(ellipse 70% 48% at 50% 112%, rgba(92, 70, 255, 0.2), transparent 56%),
-      radial-gradient(ellipse 42% 32% at 78% 62%, rgba(224, 168, 92, 0.12), transparent 62%);
-    background-attachment: fixed;
+      radial-gradient(ellipse 80% 50% at 0% 0%, rgba(0, 255, 214, 0.45), transparent 55%),
+      radial-gradient(ellipse 70% 48% at 100% 0%, rgba(255, 45, 175, 0.42), transparent 52%),
+      radial-gradient(ellipse 75% 50% at 50% 100%, rgba(92, 70, 255, 0.4), transparent 55%),
+      linear-gradient(128deg, #042824 0%, #160818 42%, #1a0820 68%, #08101c 100%);
+    background-attachment: scroll;
+  }
+
+  @media (min-width: 768px) {
+    body {
+      background-attachment: fixed;
+    }
+  }
+
+  @media (max-width: 640px) {
+    input,
+    select,
+    textarea {
+      font-size: 16px;
+    }
+  }
+
+  h1,
+  h2,
+  h3,
+  .font-display {
+    text-shadow:
+      0 0 10px rgba(0, 255, 220, 0.55),
+      0 0 22px rgba(255, 45, 175, 0.35);
+  }
+
+  p,
+  li,
+  label,
+  button,
+  dt,
+  dd,
+  span {
+    text-shadow: 0 0 8px rgba(120, 230, 255, 0.28);
+  }
+
+  .text-brass {
+    text-shadow: 0 0 10px rgba(224, 190, 120, 0.7);
+  }
+
+  .text-sage {
+    text-shadow: 0 0 12px rgba(120, 255, 190, 0.65);
+  }
+
+  .text-ember {
+    text-shadow: 0 0 12px rgba(255, 90, 140, 0.65);
   }
 
   input,
@@ -46,16 +92,25 @@
 }
 
 @layer utilities {
-  .bg-panel,
+  .bg-panel {
+    background-color: #1a1d24;
+    background-image: linear-gradient(180deg, #22262f 0%, #171a21 100%);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  }
+
   .bg-panel-2 {
-    background-image: linear-gradient(180deg, rgba(255, 236, 210, 0.07), transparent 46%);
+    background-color: #22262e;
+    background-image: linear-gradient(180deg, #2a303a 0%, #1c2028 100%);
   }
 
   .bg-ink {
-    background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.035), transparent 70%);
+    background-color: #12151b;
+    background-image: linear-gradient(180deg, #1a1e26 0%, #101318 100%);
   }
 
   .bg-brass {
-    background-image: linear-gradient(180deg, rgba(255, 244, 220, 0.28), transparent 58%);
+    background-color: #c6a36a;
+    background-image: linear-gradient(180deg, #e4d0aa 0%, #c6a36a 100%);
+    color: #1a140c;
   }
 }

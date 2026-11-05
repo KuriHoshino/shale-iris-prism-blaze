@@ -33,7 +33,7 @@ function evaluateLine(line: Line, state: ReturnType<typeof useForge.getState>) {
   const sellSide = state.sellMode === "instant" ? "buy" : "sell"
   const productId = marketId(item.id, variant.enchant)
   const sellAt = line.sellAt || state.sellCity
-  const productSide = sellAt === "Black Market" || state.sellMode === "instant" ? "buy" : "sell"
+  const productSide = "sell" as const
   const product = lookup(state.prices, productId, sellAt, state.quality, productSide, line.productOverride)
   const notes: string[] = []
   if (product.from) notes.push(`${item.name} from ${product.from}`)
@@ -85,7 +85,7 @@ function evaluateLine(line: Line, state: ReturnType<typeof useForge.getState>) {
     premium: state.premium,
     buyMode: state.buyMode,
     sellMode: state.sellMode,
-    productSellMode: sellAt === "Black Market" ? "notax" : state.sellMode,
+    productSellMode: state.sellMode,
     leftover: state.leftover,
     stationRate: state.stationRate,
     productUnit: product.price,
@@ -223,7 +223,7 @@ export function Bench() {
   }
 
   const productId = marketId(item.id, variant.enchant)
-  const itemSide = sellAt === "Black Market" || state.sellMode === "instant" ? "buy" : "sell"
+  const itemSide = "sell" as const
   const profitClass = math.profit == null ? "text-parchment" : math.profit >= 0 ? "text-sage" : "text-ember"
   const mergeRows = plan.rows.filter((row) => merged.includes(row.uid))
   const mergeTotal = mergeRows.length > 0 && mergeRows.every((row) => row.profit != null)
@@ -500,7 +500,7 @@ export function Bench() {
               Premium
             </Toggle>
           </div>
-          <div className="mt-3 grid grid-cols-3 gap-3">
+          <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
             <Num label="Mastery" min={0} value={line.mastery} onChange={(mastery) => state.patchLine(line.uid, { mastery })} />
             <Num
               label="Specialist"
@@ -609,6 +609,7 @@ export function Bench() {
                     side={side}
                     market={quote.price}
                     age={orderAge(side === "sell" ? quoteRow?.sellDate : quoteRow?.buyDate)}
+                    quality={quality}
                     userPrice={line.matOverrides[mat.id] ?? null}
                     total={bought?.cost ?? null}
                     onCity={(next) => state.patchLine(line.uid, { matCities: { ...line.matCities, [mat.id]: next } })}
@@ -670,7 +671,7 @@ export function Bench() {
               onChange={(productOverride) => state.patchLine(line.uid, { productOverride })}
               cityLabel="Sell in"
               city={sellAt}
-              cities={liveSellOptions(state.prices, productId, state.quality, itemSide)}
+              cities={liveSellOptions(state.prices, productId, state.quality)}
               onCity={(city) => {
                 state.patch({ sellCity: city })
                 state.patchLine(line.uid, { sellAt: city, productOverride: null })
@@ -746,8 +747,8 @@ export function Bench() {
           </div>
           <p className="mt-3 text-xs text-muted">
             Prices are the cheapest sell and the highest buy on the Albion Online Data Project order book. A typed
-            number overrides that quote and stops following the market. Tax is 4% with Premium and 8% without. Sell
-            orders also pay a 2.5% setup fee. Black Market and direct trades use “No tax”.
+            number overrides that quote and stops following the market. Tax is 4% with Premium and 8% without, including
+            the Black Market. Sell orders also pay a 2.5% setup fee. Direct trades use “No tax”.
           </p>
         </section>
 
@@ -873,6 +874,7 @@ function MatCard({
   side,
   market,
   age,
+  quality = 1,
   userPrice,
   total,
   onCity,
@@ -888,6 +890,7 @@ function MatCard({
   side: "sell" | "buy"
   market: number | null
   age: string
+  quality?: number
   userPrice: number | null
   total: number | null
   onCity: (city: string) => void
@@ -906,7 +909,7 @@ function MatCard({
         Buy location
         <select className={fieldClass + " mt-1"} value={(CRAFT_CITIES as readonly string[]).includes(city) ? city : CRAFT_CITIES[0]} onChange={(event) => onCity(event.target.value)}>
           {CRAFT_CITIES.map((marketCity) => {
-            const quote = readQuote(prices, itemId, marketCity, 1)
+            const quote = readQuote(prices, itemId, marketCity, quality)
             const price = moneySide(quote, side)
             const stamp = orderAge(side === "sell" ? quote?.sellDate : quote?.buyDate)
             const label =
@@ -951,12 +954,12 @@ function MatCard({
   )
 }
 
-function liveSellOptions(book: PriceBook, id: string, quality: number, side: "sell" | "buy") {
+function liveSellOptions(book: PriceBook, id: string, quality: number) {
   return MARKETS.map((city) => {
     const quote = readQuote(book, id, city, quality)
-    const price = moneySide(quote, side)
-    const age = priceAge(side === "sell" ? quote?.sellDate : quote?.buyDate)
-    if (price == null) return { value: city, label: `${city} · no order` }
+    const price = moneySide(quote, "sell")
+    const age = priceAge(quote?.sellDate)
+    if (price == null) return { value: city, label: `${city} · no sell order` }
     return { value: city, label: age ? `${city} · ${silver(price)} · ${age}` : `${city} · ${silver(price)}` }
   })
 }

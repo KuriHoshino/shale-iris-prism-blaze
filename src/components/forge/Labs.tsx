@@ -242,7 +242,7 @@ export function StudyLab() {
   const count = study > 0 ? Math.ceil(goal / study) : 0
   const repair = repairSilver(value, damage / 100, mult, fixCount)
 
-  function useItem(id: string, nextEnchant: number) {
+  function pickItem(id: string, nextEnchant: number) {
     const next = getItem(id)
     setItemId(id)
     setEnchant(nextEnchant)
@@ -259,14 +259,14 @@ export function StudyLab() {
           16.5 × server multiplier). Quality and market price change neither.
         </p>
         <div className="mt-4">
-          <ItemPicker onPick={(id) => useItem(id, 0)} compact />
+          <ItemPicker onPick={(id) => pickItem(id, 0)} compact />
         </div>
         {item && variant ? (
           <div className="mt-4 grid grid-cols-2 gap-3">
             <Select
               label="Enchant"
               value={String(enchant)}
-              onChange={(entry) => useItem(itemId, Number(entry))}
+              onChange={(entry) => pickItem(itemId, Number(entry))}
               options={[...new Set(item.variants.filter((v) => v.route === "direct").map((v) => v.enchant))].map((level) => ({
                 value: String(level),
                 label: `.${level}`,
@@ -535,7 +535,7 @@ export function RerollLab() {
   const plan = rerollPlan(value, from, goal, mult)
   const qualities = [1, 2, 3, 4, 5]
 
-  function useVariant(id: string, nextEnchant: number) {
+  function pickVariant(id: string, nextEnchant: number) {
     const next = getItem(id)
     if (!next) return
     setItemId(id)
@@ -552,13 +552,13 @@ export function RerollLab() {
           fall. A Normal item always improves. Masterpiece cannot be rerolled. A miss does not improve the next odds.
         </p>
         <div className="mt-4">
-          <ItemPicker compact onPick={(id) => useVariant(id, 0)} />
+          <ItemPicker compact onPick={(id) => pickVariant(id, 0)} />
         </div>
         <div className="mt-4 grid grid-cols-2 gap-3">
           <Select
             label="Enchant"
             value={String(enchant)}
-            onChange={(entry) => useVariant(itemId, Number(entry))}
+            onChange={(entry) => pickVariant(itemId, Number(entry))}
             options={(item ? enchantsOf(item) : [0]).map((level) => ({ value: String(level), label: `.${level}` }))}
           />
           <Num label="Item value" min={0} value={value} onChange={setValue} />

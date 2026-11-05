@@ -75,16 +75,16 @@ export function ForgeApp() {
 
   return (
     <div className="min-h-screen bg-transparent text-parchment">
-      <header className="sticky top-0 z-30 border-b border-line bg-gradient-to-b from-[#1c1730]/80 to-[#0c0a12]/75 backdrop-blur-md">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3">
-          <div>
+      <header className="sticky top-0 z-30 border-b border-line bg-[#12151b]/90 backdrop-blur-md">
+        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-3 py-3 sm:px-4">
+          <div className="min-w-0">
             <p className="font-display text-xl leading-none">Hearthforge</p>
-            <p className="mt-1 text-xs text-muted">Albion crafting desk</p>
+            <p className="mt-1 hidden text-xs text-muted sm:block">Albion crafting desk</p>
           </div>
-          <div className="flex items-end gap-3">
+          <div className="flex items-center gap-2">
             <p className="text-xs text-muted">
-              Server
-              <span className="mt-1 flex h-11 items-center rounded-lg border border-line bg-panel px-3 text-base text-parchment">
+              <span className="sr-only">Server</span>
+              <span className="flex h-11 items-center rounded-lg border border-line bg-panel px-3 text-sm text-parchment">
                 Asia
               </span>
             </p>
@@ -94,7 +94,8 @@ export function ForgeApp() {
                 onClick={() => signIn("grok-google", { callbackURL: "/" })}
                 className="h-11 rounded-lg border border-line px-3 text-sm text-parchment"
               >
-                Sign in with Google
+                <span className="sm:hidden">Sign in</span>
+                <span className="hidden sm:inline">Sign in with Google</span>
               </button>
             </SignedOut>
             <SignedIn>
@@ -102,7 +103,7 @@ export function ForgeApp() {
             </SignedIn>
           </div>
         </div>
-        <nav className="mx-auto flex max-w-6xl gap-2 overflow-x-auto px-4 pb-3">
+        <nav className="mx-auto flex max-w-6xl gap-2 overflow-x-auto px-3 pb-3 sm:px-4">
           {NAV.map((entry) => {
             const Icon = entry.icon
             const on = view === entry.id
@@ -112,8 +113,8 @@ export function ForgeApp() {
                 type="button"
                 onClick={() => setView(entry.id)}
                 className={
-                  "inline-flex h-11 shrink-0 items-center gap-2 rounded-full border px-3 text-sm " +
-                  (on ? "border-brass text-brass" : "border-line text-muted")
+                  "inline-flex h-10 shrink-0 items-center gap-2 rounded-md border px-3 text-sm " +
+                  (on ? "border-line bg-panel text-parchment" : "border-transparent text-muted")
                 }
               >
                 <Icon className="size-4" />
@@ -123,7 +124,7 @@ export function ForgeApp() {
           })}
         </nav>
       </header>
-      <main className="mx-auto max-w-6xl px-4 py-4 pb-10">
+      <main className="mx-auto max-w-6xl px-3 py-4 pb-[max(2.5rem,env(safe-area-inset-bottom))] sm:px-4">
         {view === "bench" ? <Bench /> : null}
         {view === "flip" ? <FlipLab /> : null}
         {view === "farm" ? <FarmLab /> : null}

@@ -13,7 +13,14 @@ const Input = z.object({
   qualities: z.array(z.number().int().min(1).max(5)).min(1).max(5),
 })
 
-export type PriceQuote = { sell: number; buy: number; sellDate: string; buyDate: string }
+export type PriceQuote = {
+  sell: number
+  buy: number
+  sellDate: string
+  buyDate: string
+  sellStock?: number
+  buyStock?: number
+}
 
 type BookLevel = { price: number; amount: number; updated_at?: string }
 type BookRow = {
@@ -67,17 +74,6 @@ function parseAfm(html: string) {
   return rows
 }
 
-function hasLivePrice(quotes: Record<string, Record<string, Record<string, PriceQuote>>>, id: string) {
-  const item = quotes[id]
-  if (!item) return false
-  for (const cities of Object.values(item)) {
-    for (const quote of Object.values(cities)) {
-      if (quote.sell > 0 || quote.buy > 0) return true
-    }
-  }
-  return false
-}
-
 async function pullAfm(itemId: string) {
   const url = `https://albionfreemarket.com/pricecheck/${encodeURIComponent(itemId)}?s=${AFM_QUERY}`
   const res = await fetch(url, {
@@ -94,22 +90,26 @@ function bestLevel(levels: BookLevel[] | undefined, side: "sell" | "buy") {
     if (!row.price || row.price <= 0) continue
     if (!best || (side === "sell" ? row.price < best.price : row.price > best.price)) best = row
   }
-  return { price: best?.price || 0, at: best?.updated_at || "" }
+  return { price: best?.price || 0, at: best?.updated_at || "", amount: best?.amount || 0 }
 }
 
 /** Market ids that differ from the recipe id are translated by liveId. */
 
 async function pullJson(url: string): Promise<unknown> {
-  const res = await fetch(url, {
-    headers: { Accept: "application/json" },
-    signal: AbortSignal.timeout(20000),
-  })
-  if (res.status === 429) throw new Error("The data project is busy. Prices retry in a minute.")
-  if (!res.ok) {
-    const text = await res.text()
-    throw new Error(text.slice(0, 180) || `Market data ${res.status}`)
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    const res = await fetch(url, {
+      headers: { Accept: "application/json" },
+      signal: AbortSignal.timeout(12000),
+    }).catch(() => null)
+    if (!res) return []
+    if (res.status === 429) {
+      await new Promise((resolve) => setTimeout(resolve, 1200))
+      continue
+    }
+    if (!res.ok) return []
+    return res.json().catch(() => [])
   }
-  return res.json()
+  return []
 }
 
 async function pullPrices(host: string, ids: string[], locations: string[], qualities: number[]) {
@@ -135,18 +135,18 @@ export async function loadMarketPrices(data: z.infer<typeof Input>) {
     const qualities = data.qualities
     let book: BookRow[] = []
     let listed: PriceRow[] = []
-    let failure: Error | null = null
     try {
-      book = await pullBook(host, chunk, locations, qualities)
-    } catch (err) {
-      failure = err instanceof Error ? err : new Error("Order book failed")
+      listed = (await pullPrices(host, chunk, locations, qualities)) as PriceRow[]
+      if (!Array.isArray(listed)) listed = []
+    } catch {
+      listed = []
     }
     try {
-      listed = await pullPrices(host, chunk, locations, qualities)
-    } catch (err) {
-      failure = failure ?? (err instanceof Error ? err : new Error("Price list failed"))
+      book = (await pullBook(host, chunk, locations, qualities)) as BookRow[]
+      if (!Array.isArray(book)) book = []
+    } catch {
+      book = []
     }
-    if (!book.length && !listed.length && failure) throw failure
     for (const row of listed) {
       const sell = row.sell_price_min || 0
       const buy = row.buy_price_max || 0
@@ -172,6 +172,8 @@ export async function loadMarketPrices(data: z.infer<typeof Input>) {
         buy: bid.price || prev.buy,
         sellDate: ask.price ? ask.at : prev.sellDate,
         buyDate: bid.price ? bid.at : prev.buyDate,
+        sellStock: ask.price ? ask.amount : prev.sellStock,
+        buyStock: bid.price ? bid.amount : prev.buyStock,
       }
     }
     if (i + 40 < apiIds.length) await new Promise((r) => setTimeout(r, 250))
@@ -180,14 +182,26 @@ export async function loadMarketPrices(data: z.infer<typeof Input>) {
     const api = apiIds[index]
     if (api !== ids[index] && quotes[api]) quotes[ids[index]] = quotes[api]
   }
-  const missing = ids.filter((id) => !hasLivePrice(quotes, id)).slice(0, 24)
-  for (const id of missing) {
+  const missing = ids.filter((id) => {
+    const item = quotes[id] ?? quotes[liveId(id)]
+    return data.locations.some((city) => {
+      const slot = item?.[city]
+      if (!slot) return true
+      return !data.qualities.some((quality) => {
+        const row = slot[String(quality)]
+        return Boolean(row && (row.sell > 0 || row.buy > 0))
+      })
+    })
+  })
+  for (const id of missing.slice(0, missing.length <= 24 ? missing.length : 12)) {
     try {
       const rows = await pullAfm(liveId(id))
       if (!rows.length) continue
-      const item = (quotes[id] ??= {})
+      const key = quotes[id] ? id : liveId(id)
+      const item = (quotes[key] ??= {})
       const api = liveId(id)
-      if (api !== id) quotes[api] = item
+      if (api !== key) quotes[api] = item
+      if (id !== key) quotes[id] = item
       for (const row of rows) {
         if (!row.sell && !row.buy) continue
         if (!data.locations.includes(row.city)) continue
@@ -234,13 +248,6 @@ type HistRow = {
         prices_avg?: number[]
         item_count?: number[]
       }
-}
-
-function hourStamp(stamp: string) {
-  const date = new Date(stamp.endsWith("Z") ? stamp : `${stamp}Z`)
-  if (Number.isNaN(date.getTime())) return ""
-  date.setUTCMinutes(0, 0, 0)
-  return date.toISOString().replace(".000Z", "")
 }
 
 function addHour(series: Map<string, HourPoint[]>, city: string, time: string, price: number, count: number) {
@@ -292,7 +299,7 @@ export async function loadHourlyPrices(data: z.infer<typeof HourInput>) {
   const itemId = liveId(data.itemId)
   const historyUrl = `${host}/api/v2/stats/history/${itemId}.json?locations=${loc}&qualities=${data.quality}&time-scale=1`
   const historyRes = await readJson(historyUrl).catch(() => ({ status: 0, body: null }))
-  if (historyRes.status === 429) throw new Error("The data project is busy. The chart retries in a minute.")
+  if (historyRes.status === 429) return { series: [], fetchedAt: Date.now() }
   const bucket = new Map<string, HourPoint[]>()
   if (historyRes.status === 200 && Array.isArray(historyRes.body)) readHistory(historyRes.body as HistRow[], bucket)
   const series: HourSeries[] = []

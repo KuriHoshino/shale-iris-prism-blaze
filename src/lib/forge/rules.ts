@@ -395,6 +395,7 @@ export function gearLine(item: { id?: string; group: string; category: string })
     const kind = item.id.match(/_TOOL_([A-Z]+)/)?.[1].toLowerCase()
     return kind && TOOL_LINE[kind] ? kind : null
   }
+  if (item.group === "accessory" && (item.category === "bag" || item.category === "cape")) return item.category
   return null
 }
 

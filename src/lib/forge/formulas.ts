@@ -244,7 +244,7 @@ export function craftMath(opts: {
   premium: boolean
   buyMode: BuyMode
   sellMode: SellMode
-  /** Black Market sales have no tax. Falls back to sellMode. */
+  /** Override the product sale. Black Market uses the same tax as a royal city. */
   productSellMode?: SellMode
   leftover: "reuse" | "sell"
   stationRate: number

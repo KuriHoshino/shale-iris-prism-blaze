@@ -334,7 +334,19 @@ export const useForge = create<ForgeState>()(
           const live = new Set(collectIds(get().lines))
           const next: PriceBook = {}
           for (const id of itemIds) {
-            if (live.has(id)) next[id] = result.quotes[id] ?? {}
+            if (!live.has(id)) continue
+            const fresh = result.quotes[id]
+            const hasPrice = fresh
+              ? Object.values(fresh).some((cities) => Object.values(cities).some((quote) => quote.sell > 0 || quote.buy > 0))
+              : false
+            if (hasPrice && fresh) next[id] = fresh
+          }
+          if (!Object.keys(next).length) {
+            set({
+              loading: false,
+              priceError: get().priceAt ? null : "No live prices yet. Press Live prices to try again.",
+            })
+            return
           }
           set({
             prices: replaceIds(get().prices, next, Object.keys(next)),
@@ -344,12 +356,9 @@ export const useForge = create<ForgeState>()(
           })
         } catch (error) {
           const message = error instanceof Error ? error.message : "Could not load market prices"
-          const busy = /busy|throttl/i.test(message)
+          const busy = /busy|throttl|retry in a minute/i.test(message)
           if (busy) {
-            set({
-              loading: false,
-              priceError: get().priceAt ? null : "Prices are waiting on the market. They retry in a minute.",
-            })
+            set({ loading: false, priceError: null })
             if (!retryTimer) {
               retryTimer = window.setTimeout(() => {
                 retryTimer = 0
