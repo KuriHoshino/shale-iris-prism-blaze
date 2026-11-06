@@ -3,7 +3,7 @@ import { GUILD_ISLANDS, ISLANDS, LABOR_JOBS, ENCHANT, guildHousePlots, guildSlot
 import { liveId } from "@/lib/forge/lookup"
 import { fetchMarketPrices, loadMarketPrices, type PriceQuote } from "@/lib/forge/prices"
 import { CRAFT_CITIES, SETUP_FEE, TAX_PREMIUM, TAX_STANDARD } from "@/lib/forge/rules"
-import { Num, Select, exact, pct, priceAge, silver } from "./fields"
+import { Num, Select, exact, pct, quoteNote, silver } from "./fields"
 
 const TIERS = [2, 3, 4, 5, 6, 7, 8]
 const EMPTY: Record<number, number> = { 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 2, 8: 3 }
@@ -378,13 +378,16 @@ function JournalDesk() {
 }
 
 function readPrice(book: Record<string, Record<string, Record<string, PriceQuote>>>, id: string, city: string) {
-  return book[id]?.[city]?.["1"]?.sell ?? book[liveId(id)]?.[city]?.["1"]?.sell ?? 0
+  const row = book[id]?.[city]?.["1"] ?? book[liveId(id)]?.[city]?.["1"]
+  if (row?.type === "EMV" && row.value) return row.value
+  return row?.sell ?? 0
 }
 
 function stamp(book: Record<string, Record<string, Record<string, PriceQuote>>>, id: string, city: string) {
   const row = book[id]?.[city]?.["1"] ?? book[liveId(id)]?.[city]?.["1"]
+  if (row?.type) return quoteNote(row)
   if (!row?.sell) return "No data"
-  return `${row.sellDate === "afm" ? "Free Market" : "Data Project"} · ${priceAge(row.sellDate) || "live"}`
+  return row.sellDate === "afm" ? "Free Market" : "Data Project"
 }
 
 function net(price: number, premium: boolean, sellOrder: boolean) {

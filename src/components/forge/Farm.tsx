@@ -14,7 +14,7 @@ import { liveId } from "@/lib/forge/lookup"
 import { marketStatsUrl } from "@/lib/forge/marketBase"
 import { fetchMarketPrices, loadMarketPrices, type PriceQuote } from "@/lib/forge/prices"
 import { SETUP_FEE, TAX_PREMIUM, TAX_STANDARD } from "@/lib/forge/rules"
-import { ItemIcon, Num, Select, exact, priceAge, silver } from "./fields"
+import { ItemIcon, Num, Select, exact, quoteNote, silver } from "./fields"
 
 type Book = Record<string, Record<string, Record<string, PriceQuote>>>
 type Animal = (typeof animals)[number]
@@ -576,9 +576,11 @@ function quote(book: Book, id: string, city: string) {
 }
 
 function sourceLabel(row: PriceQuote | undefined) {
-  if (!row?.sell) return "No data"
-  if (row.buyDate === "avg") return `Average · ${priceAge(row.sellDate) || "daily"}`
-  return `${row.sellDate === "afm" ? "Free Market" : "Data Project"} · ${priceAge(row.sellDate) || "live"}`
+  if (!row) return "No data"
+  if (row.type) return quoteNote(row)
+  if (!row.sell) return "No data"
+  if (row.buyDate === "avg") return `Average · ${row.sellDate ? row.sellDate : "daily"}`
+  return row.sellDate === "afm" ? "Free Market" : "Data Project"
 }
 
 function netSell(price: number, premium: boolean, sellOrder: boolean) {

@@ -7,7 +7,7 @@ import { fetchMarketPrices, loadMarketPrices } from "@/lib/forge/prices"
 import { MARKETS, TAX_PREMIUM, TAX_STANDARD, WEAPON_LINE, gearLine } from "@/lib/forge/rules"
 import { useForge, type PriceBook } from "@/lib/forge/store"
 import { stackBuy, stackSell } from "@/lib/forge/formulas"
-import { ItemIcon, itemMark, silver, pct, orderAge } from "./fields"
+import { ItemIcon, formatTimeAgo, itemMark, silver, pct, orderAge } from "./fields"
 
 const TIERS = [4, 5, 6, 7, 8]
 const ENCHANTS = [0, 1, 2, 3, 4]
@@ -324,7 +324,8 @@ export function FlipLab() {
         const fee = sold.tax + sold.setup
         const profit = sold.net - investment
         const roi = investment > 0 ? profit / investment : 0
-        const stamp = book[buyId]?.[buyCity]?.[String(quality)]?.sellDate || book[liveId(buyId)]?.[buyCity]?.[String(quality)]?.sellDate
+        const quote = book[buyId]?.[buyCity]?.[String(quality)] || book[liveId(buyId)]?.[buyCity]?.[String(quality)]
+        const stamp = quote?.type === "EMV" ? "EMV" : quote?.type === "None" || !quote ? "No data" : formatTimeAgo(quote.updatedAt || quote.sellDate || null)
         const next = {
           buy: buyPrice,
           sell: sellPrice,

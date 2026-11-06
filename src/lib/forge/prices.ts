@@ -3,7 +3,6 @@ import { z } from "zod"
 import { liveId } from "./lookup"
 import { marketStatsUrl } from "./marketBase"
 import { MARKETS } from "./rules"
-const AFM_QUERY = "east"
 
 const Input = z.object({
   server: z.string().transform(() => "asia" as const),
@@ -12,6 +11,8 @@ const Input = z.object({
   qualities: z.array(z.number().int().min(1).max(5)).min(1).max(5),
 })
 
+export type PriceKind = "Live" | "EMV" | "None"
+
 export type PriceQuote = {
   sell: number
   buy: number
@@ -19,6 +20,9 @@ export type PriceQuote = {
   buyDate: string
   sellStock?: number
   buyStock?: number
+  type?: PriceKind
+  updatedAt?: string | null
+  value?: number
 }
 
 type BookLevel = { price: number; amount: number; updated_at?: string }
@@ -40,72 +44,113 @@ type PriceRow = {
   buy_price_max_date?: string
 }
 
-const AFM_CITY: Record<string, (typeof MARKETS)[number]> = {
-  "Black Market": "Black Market",
-  "Brecilien Market": "Brecilien",
-  "Bridgewatch Market": "Bridgewatch",
-  "Caerleon Market": "Caerleon",
-  "Fort Sterling Market": "Fort Sterling",
-  "Lymhurst Market": "Lymhurst",
-  "Martlock Market": "Martlock",
-  "Thetford Market": "Thetford",
+type MarketSide = { sell: number; buy: number; sellDate: string; buyDate: string }
+
+function ageHours(isoDate: string): number | null {
+  if (!isoDate) return null
+  const parsed = Date.parse(isoDate)
+  if (Number.isNaN(parsed)) return null
+  return (Date.now() - parsed) / (1000 * 60 * 60)
 }
 
-function silverCell(cell: string) {
-  const match = cell.replace(/<[^>]+>/g, " ").match(/[0-9][0-9,]*/)
-  return match ? Number(match[0].replace(/,/g, "")) : 0
+function newestStamp(side: MarketSide): string {
+  const sellTime = Date.parse(side.sellDate)
+  const buyTime = Date.parse(side.buyDate)
+  const sellOk = !Number.isNaN(sellTime)
+  const buyOk = !Number.isNaN(buyTime)
+  if (sellOk && buyOk) return sellTime >= buyTime ? side.sellDate : side.buyDate
+  if (sellOk) return side.sellDate
+  if (buyOk) return side.buyDate
+  return side.sellDate || side.buyDate || ""
 }
 
-function parseAfm(html: string) {
-  const fromState = parseAfmState(html)
-  if (fromState.length) return fromState
-  const start = html.indexOf('class="summary-table"')
-  if (start < 0) return []
-  const end = html.indexOf("</table>", start)
-  const table = html.slice(start, end)
-  const rows: { city: (typeof MARKETS)[number]; sell: number; buy: number }[] = []
-  for (const row of table.split("</tr>").slice(1)) {
-    const name = row.match(/>((?:Black Market)|(?:[A-Za-z ]+ Market))</)
-    const city = name ? AFM_CITY[name[1]] : undefined
-    if (!city) continue
-    const cells = [...row.matchAll(/class="numeric">([\s\S]*?)<\/td>/g)]
-    if (cells.length < 2) continue
-    rows.push({ city, sell: silverCell(cells[0][1]), buy: silverCell(cells[1][1]) })
-  }
-  return rows
+function liveOf(side: MarketSide): { price: number; updatedAt: string } | null {
+  const updatedAt = newestStamp(side)
+  const age = ageHours(updatedAt)
+  if (age == null || !(age < 24)) return null
+  const sellTime = Date.parse(side.sellDate)
+  const buyTime = Date.parse(side.buyDate)
+  const sellNewer = !Number.isNaN(sellTime) && (Number.isNaN(buyTime) || sellTime >= buyTime)
+  const price = sellNewer ? (side.sell > 0 ? side.sell : side.buy) : side.buy > 0 ? side.buy : side.sell
+  if (!(price > 0)) return null
+  return { price, updatedAt }
 }
 
-function parseAfmState(html: string) {
-  const match = html.match(/<script id="ng-state" type="application\/json">([\s\S]*?)<\/script>/)
-  if (!match) return []
-  let data: Record<string, unknown>
+function emvOf(side: MarketSide): { price: number; updatedAt: string } | null {
+  const sell = side.sell > 0 ? side.sell : 0
+  const buy = side.buy > 0 ? side.buy : 0
+  const price = sell > 0 && buy > 0 ? (sell + buy) / 2 : sell > 0 ? sell : buy > 0 ? buy : 0
+  if (!price) return null
+  return { price, updatedAt: newestStamp(side) }
+}
+
+type AfmRow = { city: string; sell: number; buy: number; updatedAt: string }
+
+async function pullAfm(itemId: string): Promise<AfmRow[]> {
+  void itemId
+  return []
+}
+
+function afmSide(row: AfmRow): MarketSide {
+  return { sell: row.sell, buy: row.buy, sellDate: row.updatedAt, buyDate: row.updatedAt }
+}
+
+export async function getPriceWithFallback(
+  itemId: string,
+  location: string,
+): Promise<{ price: number; updatedAt: string | null; type: PriceKind }> {
+  let aodp: MarketSide | null = null
   try {
-    data = JSON.parse(match[1]) as Record<string, unknown>
-  } catch {
-    return []
-  }
-  const rows: { city: (typeof MARKETS)[number]; sell: number; buy: number }[] = []
-  for (const [key, value] of Object.entries(data)) {
-    if (!key.startsWith("latest-prices:") || !Array.isArray(value)) continue
-    for (const row of value) {
-      if (!row || typeof row !== "object") continue
-      const item = row as { city?: string; sell_price_min?: number; buy_price_max?: number }
-      const city = item.city && (MARKETS as readonly string[]).includes(item.city) ? (item.city as (typeof MARKETS)[number]) : undefined
-      if (!city) continue
-      rows.push({ city, sell: item.sell_price_min || 0, buy: item.buy_price_max || 0 })
+    const url = marketStatsUrl("prices", encodeURIComponent(itemId), `locations=${encodeURIComponent(location)}&qualities=1`)
+    const res = await fetch(url, { signal: AbortSignal.timeout(12000) })
+    if (!res.ok) throw new Error(String(res.status))
+    const row = ((await res.json()) as PriceRow[])?.[0]
+    if (row && ((row.sell_price_min || 0) > 0 || (row.buy_price_max || 0) > 0)) {
+      aodp = { sell: row.sell_price_min || 0, buy: row.buy_price_max || 0, sellDate: row.sell_price_min_date || "", buyDate: row.buy_price_max_date || "" }
     }
+    const live = aodp && liveOf(aodp)
+    if (live) return { price: live.price, updatedAt: live.updatedAt, type: "Live" }
+  } catch (error) {
+    console.warn("AODP fetch failed", itemId, location, error)
+    aodp = null
   }
-  return rows
+  let afm: MarketSide | null = null
+  try {
+    const afmRows = await pullAfm(itemId)
+    let hit = afmRows.find((row) => row.city.toLowerCase() === location.toLowerCase())
+    if (!hit) {
+      hit = afmRows.find(
+        (row) =>
+          row.city.toLowerCase().includes(location.toLowerCase()) ||
+          location.toLowerCase().includes(row.city.toLowerCase()),
+      )
+    }
+    if (hit && (hit.sell > 0 || hit.buy > 0)) {
+      afm = afmSide(hit)
+      const live = liveOf(afm)
+      if (live) return { price: live.price, updatedAt: live.updatedAt, type: "Live" }
+    }
+  } catch (error) {
+    console.warn("AFM fetch failed", itemId, location, error)
+    afm = null
+  }
+  const ranked = [aodp, afm].filter((row): row is MarketSide => Boolean(row && (row.sell > 0 || row.buy > 0)))
+  ranked.sort((a, b) => (newestStamp(b) || "").localeCompare(newestStamp(a) || ""))
+  const estimated = ranked.length ? emvOf(ranked[0]) : null
+  if (estimated) return { price: estimated.price, updatedAt: estimated.updatedAt, type: "EMV" }
+  return { price: 0, updatedAt: null, type: "None" }
 }
 
-async function pullAfm(itemId: string) {
-  const url = `https://albionfreemarket.com/pricecheck/${encodeURIComponent(itemId)}?s=${AFM_QUERY}`
-  const res = await fetch(url, {
-    headers: { Accept: "text/html" },
-    signal: AbortSignal.timeout(15000),
-  })
-  if (!res.ok) return []
-  return parseAfm(await res.text())
+function classify(aodp: MarketSide | null, afm: MarketSide | null) {
+  const fresh = aodp && liveOf(aodp)
+  if (fresh) return { ...fresh, type: "Live" as const, row: aodp }
+  const afmFresh = afm && liveOf(afm)
+  if (afmFresh) return { ...afmFresh, type: "Live" as const, row: afm }
+  const ranked = [aodp, afm].filter((row): row is MarketSide => Boolean(row && (row.sell > 0 || row.buy > 0)))
+  ranked.sort((a, b) => (newestStamp(b) || "").localeCompare(newestStamp(a) || ""))
+  const estimated = ranked.length ? emvOf(ranked[0]) : null
+  if (estimated) return { ...estimated, type: "EMV" as const, row: ranked[0] }
+  return { price: 0, updatedAt: null, type: "None" as const, row: null }
 }
 
 function bestLevel(levels: BookLevel[] | undefined, side: "sell" | "buy") {
@@ -205,43 +250,52 @@ export async function loadMarketPrices(data: z.infer<typeof Input>) {
     const api = apiIds[index]
     if (api !== ids[index] && quotes[api]) quotes[ids[index]] = quotes[api]
   }
-  const missing = ids.filter((id) => {
-    const item = quotes[id] ?? quotes[liveId(id)]
-    return data.locations.some((city) => {
-      const slot = item?.[city]
-      if (!slot) return true
-      return !data.qualities.some((quality) => {
-        const row = slot[String(quality)]
-        return Boolean(row && (row.sell > 0 || row.buy > 0))
-      })
-    })
-  })
-  for (const id of missing.slice(0, missing.length <= 24 ? missing.length : 12)) {
+  const afmRows = new Map<string, AfmRow[]>()
+  const pending = ids.filter((id) =>
+    data.locations.some((city) =>
+      data.qualities.some((quality) => {
+        const quote = quotes[id]?.[city]?.[String(quality)] ?? quotes[liveId(id)]?.[city]?.[String(quality)]
+        return !quote || !liveOf(quote)
+      }),
+    ),
+  )
+  for (let index = 0; index < pending.length; index += 1) {
+    if (index) await new Promise((resolve) => setTimeout(resolve, 100))
     try {
-      const rows = await pullAfm(liveId(id))
-      if (!rows.length) continue
-      const key = quotes[id] ? id : liveId(id)
-      const item = (quotes[key] ??= {})
-      const api = liveId(id)
-      if (api !== key) quotes[api] = item
-      if (id !== key) quotes[id] = item
-      for (const row of rows) {
-        if (!row.sell && !row.buy) continue
-        if (!data.locations.includes(row.city)) continue
-        const city = (item[row.city] ??= {})
-        for (const quality of data.qualities) {
-          const prev = city[String(quality)]
-          if (prev && (prev.sell > 0 || prev.buy > 0)) continue
-          city[String(quality)] = {
-            sell: row.sell,
-            buy: row.buy,
-            sellDate: row.sell ? "afm" : "",
-            buyDate: row.buy ? "afm" : "",
-          }
+      afmRows.set(pending[index], await pullAfm(liveId(pending[index])))
+    } catch {
+      afmRows.set(pending[index], [])
+    }
+  }
+  for (const id of ids) {
+    const book = quotes[id] ?? quotes[liveId(id)]
+    for (const city of data.locations) {
+      for (const quality of data.qualities) {
+        const current = book?.[city]?.[String(quality)] ?? null
+        const rows = afmRows.get(id) ?? []
+        const hit =
+          rows.find((row) => row.city.toLowerCase() === city.toLowerCase()) ??
+          rows.find(
+            (row) =>
+              row.city.toLowerCase().includes(city.toLowerCase()) || city.toLowerCase().includes(row.city.toLowerCase()),
+          ) ??
+          null
+        const afm = hit ? afmSide(hit) : null
+        const judged = classify(current, afm)
+        if (!judged.row) continue
+        const item = (quotes[id] ??= {})
+        const slot = (item[city] ??= {})
+        slot[String(quality)] = {
+          ...(current ?? {}),
+          sell: judged.row.sell,
+          buy: judged.row.buy,
+          sellDate: judged.row.sellDate,
+          buyDate: judged.row.buyDate,
+          type: judged.type,
+          updatedAt: judged.updatedAt,
+          value: judged.price,
         }
       }
-    } catch {
-      continue
     }
   }
   return { quotes, fetchedAt: Date.now() }

@@ -74,6 +74,58 @@ export function ItemIcon({
   )
 }
 
+/** Short age for a price timestamp, such as "5m ago" or "2d ago". */
+export function formatTimeAgo(isoDate: string | null): string {
+  if (!isoDate) return "No recent data"
+  const date = new Date(isoDate)
+  if (Number.isNaN(date.getTime())) return "No recent data"
+  const diffMins = Math.floor((Date.now() - date.getTime()) / 60000)
+  if (diffMins < 1) return "just now"
+  if (diffMins < 60) return `${diffMins}m ago`
+  const diffHours = Math.floor(diffMins / 60)
+  if (diffHours < 24) return `${diffHours}h ago`
+  return `${Math.floor(diffHours / 24)}d ago`
+}
+
+export function quoteNote(
+  quote: { type?: "Live" | "EMV" | "None"; updatedAt?: string | null; sellDate?: string; buyDate?: string } | null | undefined,
+  side: "sell" | "buy" = "sell",
+) {
+  if (!quote || quote.type === "None") return "No data"
+  if (quote.type === "EMV") return "EMV"
+  if (quote.type === "Live") return formatTimeAgo(quote.updatedAt || null)
+  return priceAge(side === "sell" ? quote.sellDate : quote.buyDate) || "No data"
+}
+
+export function PriceTag({
+  price,
+  updatedAt,
+  type,
+}: {
+  price: number
+  updatedAt: string | null
+  type: "Live" | "EMV" | "None"
+}) {
+  if (type === "None" || !(price > 0)) {
+    return (
+      <span className="text-muted">
+        —
+        <span className="block text-xs">No data</span>
+      </span>
+    )
+  }
+  return (
+    <span>
+      <span className="tabular-nums text-parchment">{silver(price)}</span>
+      {type === "EMV" ? (
+        <span className="block text-xs text-muted">EMV</span>
+      ) : (
+        <span className="block text-xs text-muted">{formatTimeAgo(updatedAt)}</span>
+      )}
+    </span>
+  )
+}
+
 /** How old a market timestamp is, such as "2h ago". */
 export function priceAge(stamp: string | undefined): string {
   if (!stamp) return ""

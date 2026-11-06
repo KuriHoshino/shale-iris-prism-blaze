@@ -4,7 +4,7 @@ import { craftMath, specGroupBonus } from "@/lib/forge/formulas"
 import { enchantsOf, getItem, journalFor, marketId, matName, matWeight, upgradeSource, variantOf } from "@/lib/forge/lookup"
 import { CRAFT_CITIES, HO_BIOMES, MARKETS, biomeById, biomeFavors, bonusBiome } from "@/lib/forge/rules"
 import { moneySide, readQuote, useForge, type Line, type PriceBook } from "@/lib/forge/store"
-import { ItemIcon, Num, Select, Toggle, exact, fieldClass, itemMark, orderAge, pct, priceAge, silver } from "./fields"
+import { ItemIcon, Num, PriceTag, Select, Toggle, exact, fieldClass, itemMark, orderAge, pct, quoteNote, silver } from "./fields"
 import { HourlyChart } from "./Hourly"
 import { ItemPicker } from "./Picker"
 
@@ -665,8 +665,8 @@ export function Bench() {
                     leftover={left?.qty ?? 0}
                     city={city}
                     side={side}
-                    market={quote.price}
-                    age={orderAge(side === "sell" ? quoteRow?.sellDate : quoteRow?.buyDate)}
+                    market={quoteRow?.type === "EMV" && quoteRow.value ? quoteRow.value : quote.price}
+                    age={quoteNote(quoteRow, side)}
                     quality={quality}
                     userPrice={line.matOverrides[mat.id] ?? null}
                     total={bought?.cost ?? null}
@@ -1098,10 +1098,10 @@ function EmvSelect({
 function liveSellOptions(book: PriceBook, id: string, quality: number) {
   return MARKETS.map((city) => {
     const quote = readQuote(book, id, city, quality)
-    const price = moneySide(quote, "sell")
-    const age = priceAge(quote?.sellDate)
+    const price = quote?.type === "EMV" && quote.value ? quote.value : moneySide(quote, "sell")
+    const note = quoteNote(quote, "sell")
     if (price == null) return { value: city, label: `${city} · no sell order` }
-    return { value: city, label: age ? `${city} · ${silver(price)} · ${age}` : `${city} · ${silver(price)}` }
+    return { value: city, label: note === "No data" ? `${city} · —` : `${city} · ${silver(price)} · ${note}` }
   })
 }
 
@@ -1118,16 +1118,15 @@ function citiesWith(
   if (!cities.includes(current as (typeof MARKETS)[number])) cities.unshift(current as (typeof MARKETS)[number])
   return cities.map((city) => {
     const quote = readQuote(book, id, city, quality)
-    const price = moneySide(quote, side)
-    const age = priceAge(side === "sell" ? quote?.sellDate : quote?.buyDate)
-    if (price == null) return { value: city, label: city }
-    return { value: city, label: age ? `${city} · ${silver(price)} · ${age}` : `${city} · ${silver(price)}` }
+    const price = quote?.type === "EMV" && quote.value ? quote.value : moneySide(quote, side)
+    const note = quoteNote(quote, side)
+    if (price == null) return { value: city, label: note === "No data" ? `${city} · —` : city }
+    return { value: city, label: `${city} · ${silver(price)} · ${note}` }
   })
 }
 
 function quoteAge(book: PriceBook, id: string, city: string, quality: number, side: "sell" | "buy") {
-  const quote = readQuote(book, id, city, quality)
-  return priceAge(side === "sell" ? quote?.sellDate : quote?.buyDate)
+  return quoteNote(readQuote(book, id, city, quality), side)
 }
 
 function PriceRow({
@@ -1187,9 +1186,14 @@ function PriceRow({
       {priceBox ? (
         <>
           <span className="flex items-center gap-2">
-            <span className="tabular-nums text-base text-parchment">
-              {market == null ? "No live order" : age ? `${silver(market)} · ${age}` : silver(market)}
-            </span>
+            {market == null ? (
+              <PriceTag price={0} updatedAt={null} type="None" />
+            ) : (
+              <span>
+                <span className="tabular-nums text-base text-parchment">{silver(market)}</span>
+                <span className="block text-xs text-muted">{age || "No data"}</span>
+              </span>
+            )}
             <button
               type="button"
               disabled={market == null}
