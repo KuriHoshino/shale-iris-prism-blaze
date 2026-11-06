@@ -68,6 +68,14 @@
     background: var(--color-line);
     border-radius: 999px;
   }
+
+  .scrollbar-hide {
+    scrollbar-width: none;
+  }
+
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
 }
 
 @layer base {
@@ -79,7 +87,6 @@
   html {
     background-color: var(--color-ink);
     color: var(--color-parchment);
-    overflow-x: clip;
   }
 
   body {

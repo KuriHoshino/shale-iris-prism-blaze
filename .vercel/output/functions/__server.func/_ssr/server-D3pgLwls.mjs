@@ -1,7 +1,7 @@
 import { $ as encode, A as jwtVerify, At as getCurrentAdapter, C as serializeSignedCookie, Ct as createWithSpan, D as decodeJwt, Dt as import_src, E as base64Url, Et as ATTR_OPERATION_ID, Ft as initGetModelName, Gt as email, Ht as any, It as initGetFieldName, Jt as number, Lt as generateId, Mt as runWithAdapter, Nt as runWithTransaction, O as decodeProtectedHeader, Ot as safeJSONParse, Pt as getBetterAuthVersion, Qt as string, Rt as createRandomStringGenerator, S as serializeCookie, Tt as ATTR_HOOK_TYPE, Ut as array, Wt as boolean, Xt as optional, Yt as object, Zt as record, _ as runWithRequestState, _n as isTest, a as createAuthorizationURL, b as createRouter$1, bn as kAPIErrorHeaderSymbol, c as createRateLimitKey, cn as createLogger, d as deprecate, dt as JWTExpired, f as createAuthEndpoint, fn as env, g as hasRequestState, gn as isProduction, h as defineRequestState, hn as isDevelopment, i as refreshAccessToken, in as betterFetch, jt as queueAfterTransactionHook, k as importJWK, kt as getAuthTables, l as findInvalidTrustedProxies, ln as logger, m as isAPIError, n as socialProviders, o as applyDefaultAccessTokenExpiry, p as createAuthMiddleware, qt as looseObject, r as validateAuthorizationCode, s as isLoopbackHost, sn as normalizePathname, t as SocialProviderListEnum, u as getIp, un as shouldPublishLog, v as getCurrentAuthContext, vn as APIError, w as filterOutputFields, wt as ATTR_CONTEXT, x as toResponse, xn as BASE_ERROR_CODES, y as runWithEndpointContext, yn as BetterAuthError } from "../_libs/@better-auth/core+[...].mjs";
 import { a as getOrigin, c as isRequestLike, i as getHost, l as resolveBaseURL, n as PACKAGE_VERSION, o as getProtocol, r as getBaseURL, s as isDynamicBaseURLConfig, t as GENERIC_OAUTH_ERROR_CODES, u as wildcardMatch } from "./url-BE6YaD7r.mjs";
 import { n as defu, t as createDefu } from "../_libs/defu.mjs";
-import { n as ensureDbReady, r as getPglite } from "./db-CbBX1pmk.mjs";
+import { n as ensureDbReady, r as getPglite } from "./db-Cke2aE-u.mjs";
 import { n as string$1, t as boolean$1 } from "../_libs/zod.mjs";
 import { a as PostgresIntrospector, c as sql, i as PostgresAdapter, n as getKyselyDatabaseType, o as PostgresQueryCompiler, s as CompiledQuery, t as createKyselyAdapter } from "../_libs/@better-auth/kysely-adapter+[...].mjs";
 import { i as jwtDecrypt, n as EncryptJWT, r as SignJWT, t as calculateJwkThumbprint } from "../_libs/jose.mjs";
@@ -11,7 +11,7 @@ import { n as createHash, t as createTelemetry } from "../_libs/@better-auth/tel
 import { a as utf8ToBytes, i as managedNonce, n as bytesToHex, r as hexToBytes, t as xchacha20poly1305 } from "../_libs/noble__ciphers.mjs";
 import { t as Pool } from "../_libs/pg.mjs";
 import { randomBytes } from "node:crypto";
-//#region node_modules/.nitro/vite/services/ssr/assets/server-Dl_M9AyG.js
+//#region node_modules/.nitro/vite/services/ssr/assets/server-D3pgLwls.js
 function tryDecode$1(str) {
 	if (str.indexOf("%") === -1) return str;
 	try {

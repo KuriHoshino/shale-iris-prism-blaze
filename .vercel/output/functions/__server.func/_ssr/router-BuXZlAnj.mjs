@@ -1,10 +1,10 @@
 import { o as __toESM, r as __exportAll } from "../_runtime.mjs";
 import { $t as union, Jt as number, Kt as literal, Qt as string, Yt as object } from "../_libs/@better-auth/core+[...].mjs";
 import { _ as createFileRoute, b as require_jsx_runtime, d as Scripts, f as HeadContent, g as lazyRouteComponent, h as Outlet, m as createRouter, q as require_react, v as createRootRoute, y as useRouter } from "../_libs/@tanstack/react-router+[...].mjs";
-import { n as auth } from "./server-Dl_M9AyG.mjs";
-import { n as TriangleAlert } from "../_libs/lucide-react.mjs";
-//#region node_modules/.nitro/vite/services/ssr/assets/router-D61K02fk.js
-var router_D61K02fk_exports = /* @__PURE__ */ __exportAll({ getRouter: () => getRouter });
+import { n as auth } from "./server-D3pgLwls.mjs";
+import { r as TriangleAlert } from "../_libs/lucide-react.mjs";
+//#region node_modules/.nitro/vite/services/ssr/assets/router-BuXZlAnj.js
+var router_BuXZlAnj_exports = /* @__PURE__ */ __exportAll({ getRouter: () => getRouter });
 var import_react = /* @__PURE__ */ __toESM(require_react());
 var import_jsx_runtime = require_jsx_runtime();
 var FALLBACK_MESSAGE = "An unexpected error occurred. Try reloading the page.";
@@ -15,10 +15,10 @@ function errorMessage(error) {
 }
 function AppErrorComponent({ error }) {
 	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("main", {
-		className: "flex min-h-screen flex-col items-center justify-center gap-3 px-6 text-center bg-zinc-50 text-zinc-900 dark:bg-zinc-950 dark:text-zinc-50",
+		className: "flex min-h-screen flex-col items-center justify-center gap-3 bg-ink px-6 text-center text-parchment",
 		children: [
 			/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
-				className: "text-red-500",
+				className: "text-ember",
 				"aria-hidden": "true",
 				children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TriangleAlert, {
 					className: "size-10",
@@ -30,7 +30,7 @@ function AppErrorComponent({ error }) {
 				children: "Something went wrong"
 			}),
 			/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
-				className: "max-w-md text-sm break-words text-zinc-500 dark:text-zinc-400",
+				className: "max-w-md text-sm break-words text-muted",
 				children: errorMessage(error)
 			})
 		]
@@ -332,19 +332,19 @@ function PreviewHostBridge() {
 	}, [router]);
 	return null;
 }
-var styles_default = "/assets/styles-DlIVl7qo.css";
+var stylesheet = "/assets/styles-CVvJhbF8.css";
 var Route$3 = createRootRoute({
 	head: () => ({
 		meta: [
 			{ charSet: "utf-8" },
 			{
 				name: "viewport",
-				content: "width=device-width, initial-scale=1"
+				content: "width=device-width, initial-scale=1, viewport-fit=cover"
 			},
 			{ title: "Hearthforge" },
 			{
 				name: "theme-color",
-				content: "#14110e"
+				content: "#0B0C10"
 			}
 		],
 		links: [
@@ -354,8 +354,16 @@ var Route$3 = createRootRoute({
 				href: "/favicon.svg"
 			},
 			{
+				rel: "preconnect",
+				href: "https://render.albiononline.com"
+			},
+			{
+				rel: "dns-prefetch",
+				href: "https://render.albiononline.com"
+			},
+			{
 				rel: "stylesheet",
-				href: styles_default
+				href: stylesheet
 			},
 			{
 				rel: "manifest",
@@ -381,9 +389,9 @@ var Route$3 = createRootRoute({
 		] })]
 	})
 });
-var $$splitComponentImporter$1 = () => import("./routes-BWNs0Oss.mjs");
+var $$splitComponentImporter$1 = () => import("./routes-BFHDL7Ox.mjs");
 var Route$2 = createFileRoute("/")({ component: lazyRouteComponent($$splitComponentImporter$1, "component") });
-var $$splitComponentImporter = () => import("./login-Ca3VSlxD.mjs");
+var $$splitComponentImporter = () => import("./login-CZWJzozD.mjs");
 var Route$1 = createFileRoute("/login")({ component: lazyRouteComponent($$splitComponentImporter, "component") });
 var Route = createFileRoute("/api/auth/$")({ server: { handlers: {
 	GET: ({ request }) => auth.handler(request),
@@ -407,12 +415,14 @@ var rootRouteChildren = {
 	})
 };
 var routeTree = Route$3._addFileChildren(rootRouteChildren)._addFileTypes();
+var basepath = void 0;
 function getRouter() {
 	return createRouter({
 		routeTree,
+		basepath,
 		rewrite: previewPathRewrite(),
 		defaultErrorComponent: AppErrorComponent
 	});
 }
 //#endregion
-export { getRouter, router_D61K02fk_exports as t };
+export { getRouter, router_BuXZlAnj_exports as t };

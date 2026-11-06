@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react"
-import { Clock, Dices, GraduationCap, Hammer, LayoutDashboard, Percent, Repeat, Sprout, Users } from "lucide-react"
+import { Clock, Dices, GraduationCap, Hammer, LayoutDashboard, Menu, Percent, Repeat, Sprout, Users, X } from "lucide-react"
 import { signIn } from "@/lib/auth/client"
 import { SignedIn, SignedOut, UserButton } from "@/lib/auth/gates"
 import { useCurrentUserState } from "@/lib/auth/use-current-user"
@@ -14,17 +14,31 @@ import { LaborLab } from "./Labor"
 import { RecentLab } from "./Recent"
 import { RerollLab, ReturnFocusLab, StudyLab } from "./Labs"
 
-const NAV: { id: View; label: string; icon: typeof Hammer }[] = [
+type NavEntry = { id: View; label: string; icon: typeof Hammer }
+
+const MAIN_NAV: NavEntry[] = [
   { id: "dash", label: "Dashboard", icon: LayoutDashboard },
   { id: "bench", label: "Add Craft", icon: Hammer },
   { id: "flip", label: "Flipping", icon: Repeat },
   { id: "recent", label: "Recent", icon: Clock },
   { id: "farm", label: "Farming and Breeding", icon: Sprout },
+]
+
+const SECONDARY_NAV: NavEntry[] = [
   { id: "labor", label: "Laborers", icon: Users },
   { id: "returns", label: "Return & focus", icon: Percent },
   { id: "study", label: "Study & repair", icon: GraduationCap },
   { id: "reroll", label: "Reroll", icon: Dices },
 ]
+
+const NAV = [...MAIN_NAV, ...SECONDARY_NAV]
+
+function navClass(on: boolean) {
+  return (
+    "inline-flex h-10 shrink-0 items-center gap-2 whitespace-nowrap rounded-md border px-3 text-sm " +
+    (on ? "border-line bg-panel text-parchment" : "border-transparent text-muted")
+  )
+}
 
 export function ForgeApp() {
   const storedView = useForge((s) => s.view)
@@ -75,41 +89,26 @@ export function ForgeApp() {
   }, [])
 
   const page = NAV.find((entry) => entry.id === view) ?? NAV[0]
+  const [menuOpen, setMenuOpen] = useState(false)
+  const openView = (id: View) => {
+    setView(id)
+    setMenuOpen(false)
+  }
 
   return (
-    <div className="relative min-h-screen bg-transparent text-parchment">
+    <div className="relative min-h-screen bg-transparent text-parchment xl:pr-56">
       <div className="mist mist-teal" />
       <div className="mist mist-violet" />
-      <header className="sticky top-0 z-30 border-b border-line bg-panel/90 backdrop-blur-md">
-        <div className="page flex flex-wrap items-center gap-x-4 gap-y-3 py-4">
-          <div className="min-w-0">
-            <p className="font-display text-xl leading-none">Hearthforge</p>
-            <p className="mt-1 hidden text-xs leading-normal text-muted sm:block">Albion crafting desk</p>
+      <header className="sticky top-0 z-50 w-full border-b border-line bg-panel/95 backdrop-blur-md">
+        <div className="page flex items-center justify-between gap-4 py-3 lg:py-4">
+          <div className="shrink-0">
+            <p className="whitespace-nowrap font-display text-xl leading-none">Hearthforge</p>
+            <p className="mt-1 whitespace-nowrap text-xs leading-none text-muted">Albion crafting desk</p>
           </div>
-          <nav className="order-3 flex w-full flex-wrap gap-x-2 gap-y-2 md:order-none md:w-auto md:flex-1">
-            {NAV.map((entry) => {
-              const Icon = entry.icon
-              const on = view === entry.id
-              return (
-                <button
-                  key={entry.id}
-                  type="button"
-                  onClick={() => setView(entry.id)}
-                  className={
-                    "inline-flex h-10 items-center gap-2 rounded-md border px-3 text-sm " +
-                    (on ? "border-line bg-panel text-parchment" : "border-transparent text-muted")
-                  }
-                >
-                  <Icon className="size-4" />
-                  {entry.label}
-                </button>
-              )
-            })}
-          </nav>
-          <div className="relative ml-auto flex items-center gap-2">
+          <div className="ml-auto flex shrink-0 items-center gap-4 whitespace-nowrap">
             <p className="text-xs text-muted">
               <span className="sr-only">Server</span>
-              <span className="flex h-11 items-center rounded-lg border border-line bg-panel px-3 text-sm text-parchment">
+              <span className="flex h-11 items-center whitespace-nowrap rounded-lg border border-line bg-panel px-3 text-sm text-parchment">
                 Asia
               </span>
             </p>
@@ -117,18 +116,60 @@ export function ForgeApp() {
               <button
                 type="button"
                 onClick={() => signIn("grok-google", { callbackURL: "/" })}
-                className="h-11 rounded-lg border border-line px-3 text-sm text-parchment"
+                className="h-11 shrink-0 whitespace-nowrap rounded-lg border border-line px-3 text-sm text-parchment"
               >
-                <span className="sm:hidden">Sign in</span>
-                <span className="hidden sm:inline">Sign in with Google</span>
+                Sign in
               </button>
             </SignedOut>
             <SignedIn>
               <UserButton />
             </SignedIn>
+            <button
+              type="button"
+              className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-line text-parchment xl:hidden"
+              aria-expanded={menuOpen}
+              aria-label={menuOpen ? "Close menu" : "Open menu"}
+              onClick={() => setMenuOpen((open) => !open)}
+            >
+              {menuOpen ? <X className="size-5" /> : <Menu className="size-5" />}
+            </button>
           </div>
         </div>
+        {menuOpen ? (
+          <nav className="page flex flex-col gap-1 pb-3 xl:hidden">
+            {NAV.map((entry) => {
+              const Icon = entry.icon
+              return (
+                <button
+                  key={entry.id}
+                  type="button"
+                  onClick={() => openView(entry.id)}
+                  className={navClass(view === entry.id) + " h-11 w-full justify-start"}
+                >
+                  <Icon className="size-4" />
+                  {entry.label}
+                </button>
+              )
+            })}
+          </nav>
+        ) : null}
       </header>
+      <aside className="fixed bottom-0 right-0 top-0 z-40 hidden w-56 flex-col gap-1 overflow-y-auto border-l border-line bg-panel/95 p-3 xl:flex">
+        {NAV.map((entry) => {
+          const Icon = entry.icon
+          return (
+            <button
+              key={entry.id}
+              type="button"
+              onClick={() => openView(entry.id)}
+              className={navClass(view === entry.id) + " w-full justify-start"}
+            >
+              <Icon className="size-4" />
+              {entry.label}
+            </button>
+          )
+        })}
+      </aside>
       <main className="page relative z-10 flex flex-col gap-section py-8">
         {view === "dash" ? null : (
           <div>
@@ -136,7 +177,7 @@ export function ForgeApp() {
             <h1 className="page-title">{page.label}</h1>
           </div>
         )}
-        {view === "dash" ? <Dashboard onOpen={setView} /> : null}
+        {view === "dash" ? <Dashboard onOpen={openView} /> : null}
         {view === "bench" ? <Bench /> : null}
         {view === "flip" ? <FlipLab /> : null}
         {view === "farm" ? <FarmLab /> : null}

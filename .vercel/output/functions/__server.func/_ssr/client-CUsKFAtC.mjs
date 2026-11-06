@@ -5,7 +5,7 @@ import { n as PACKAGE_VERSION, r as getBaseURL, t as GENERIC_OAUTH_ERROR_CODES }
 import { q as require_react } from "../_libs/@tanstack/react-router+[...].mjs";
 import { a as atom, i as onSet, n as STORE_UNMOUNT_DELAY, r as onMount, t as listenKeys } from "../_libs/nanostores.mjs";
 import { n as defu } from "../_libs/defu.mjs";
-//#region node_modules/.nitro/vite/services/ssr/assets/client-IWHfIGH2.js
+//#region node_modules/.nitro/vite/services/ssr/assets/client-CUsKFAtC.js
 var import_react = /* @__PURE__ */ __toESM(require_react());
 var genericOAuthClient = () => {
 	return {
@@ -942,7 +942,10 @@ async function signIn(providerId, opts = {}) {
 		clearToken: () => setBearerToken(null)
 	});
 	if (inLivePreview()) {
-		if (!popup) throw new Error("Pop-up blocked — allow pop-ups for sign-in");
+		if (!popup) {
+			window.location.assign(`/auth/popup?providerId=${encodeURIComponent(providerId)}`);
+			return;
+		}
 		const token = await waitForPopupToken(popup);
 		if (!token) throw new Error("Sign-in was cancelled or failed");
 		setBearerToken(token);

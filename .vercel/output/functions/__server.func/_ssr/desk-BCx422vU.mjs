@@ -1,6 +1,6 @@
 import { $t as union, Jt as number, Kt as literal, Qt as string, Ut as array, Vt as _enum, Wt as boolean, Yt as object, Zt as record } from "../_libs/@better-auth/core+[...].mjs";
 import { n as createMiddleware } from "./ssr.mjs";
-//#region node_modules/.nitro/vite/services/ssr/assets/desk-91LmkytP.js
+//#region node_modules/.nitro/vite/services/ssr/assets/desk-BCx422vU.js
 /**
 * Auth middleware for server functions — the standard way to get the caller's
 * verified user id. When deployed the session cookie is same-origin and rides
@@ -27,11 +27,11 @@ import { n as createMiddleware } from "./ssr.mjs";
 * per-user data and scope every query by `context.userId`.
 */
 var authMiddleware = createMiddleware({ type: "function" }).client(async ({ next }) => {
-	const { getBearerToken } = await import("./client-IWHfIGH2.mjs").then((n) => n.n);
+	const { getBearerToken } = await import("./client-CUsKFAtC.mjs").then((n) => n.n);
 	return next({ sendContext: { bearerToken: getBearerToken() ?? void 0 } });
 }).server(async ({ next, context }) => {
 	const { assertSameSiteRequest } = await import("./isolation.server-CGNg1r0B.mjs");
-	const { requireUserId } = await import("./verify.server-BUIPzG2m.mjs");
+	const { requireUserId } = await import("./verify.server-1kckP_7l.mjs");
 	assertSameSiteRequest();
 	return next({ context: { userId: await requireUserId(context.bearerToken) } });
 });
@@ -40,7 +40,7 @@ var DeskSchema = object({
 		"asia",
 		"europe",
 		"americas"
-	]),
+	]).transform(() => "asia"),
 	premium: boolean(),
 	buyCity: string().min(1).max(40),
 	sellCity: string().min(1).max(40),
@@ -59,6 +59,7 @@ var DeskSchema = object({
 		itemId: string().min(1).max(80),
 		enchant: number().int().min(0).max(4),
 		route: _enum(["direct", "upgrade"]),
+		upgradeFrom: _enum(["buy", "craft"]).optional(),
 		runs: number().int().min(1).max(1e5),
 		place: _enum([
 			"city",
@@ -93,7 +94,12 @@ var DeskSchema = object({
 		journalTiers: array(number().int().min(2).max(8)).max(7).optional(),
 		productOverride: number().nullable(),
 		matOverrides: record(string().max(80), number()),
-		focusOverride: number().nullable()
+		focusOverride: number().nullable(),
+		flip: boolean().optional(),
+		shopCity: string().min(1).max(40).optional(),
+		sellAt: string().min(1).max(40).optional(),
+		matCities: record(string().max(80), string().max(40)).optional(),
+		matModes: record(string().max(80), _enum(["sell", "buy"])).optional()
 	})).min(1).max(40)
 });
 function snapshotFrom(state) {

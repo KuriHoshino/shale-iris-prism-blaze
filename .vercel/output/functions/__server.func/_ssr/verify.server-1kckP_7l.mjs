@@ -1,6 +1,6 @@
 import { o as getRequest } from "./ssr.mjs";
-import { i as gateIdentityEnabled, n as auth, r as authConfigured } from "./server-Dl_M9AyG.mjs";
-//#region node_modules/.nitro/vite/services/ssr/assets/verify.server-BUIPzG2m.js
+import { i as gateIdentityEnabled, n as auth, r as authConfigured } from "./server-D3pgLwls.mjs";
+//#region node_modules/.nitro/vite/services/ssr/assets/verify.server-1kckP_7l.js
 /**
 * Server-side session resolution (server-only).
 *

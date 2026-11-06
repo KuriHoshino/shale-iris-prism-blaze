@@ -148,7 +148,9 @@ function authPopupPlugin(): Plugin {
 const pages = process.env.GITHUB_PAGES === "1"
 
 export default defineConfig(({ command, isPreview }) => ({
-  base: pages ? "/albion-craft-island-labor/" : "/",
+  // Root of the domain. A relative `./` or a repo folder makes the
+  // stylesheet 404 on https://….grok.me/ and the page stays white.
+  base: "/",
   server: {
     host: "0.0.0.0",
     port: 8080,

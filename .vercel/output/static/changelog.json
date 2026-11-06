@@ -1,0 +1,21 @@
+{
+  "entries": [
+    {
+      "version": "2026-11-06",
+      "title": "Export from Grok",
+      "bullets": [
+        "Export from Grok"
+      ]
+    },
+    {
+      "version": "2026-11-06",
+      "title": "Farming, breeding, and laborers",
+      "bullets": [
+        "Water one crop or nurture one animal. Seed yield and offspring stay at the normal rate until you do.",
+        "Focus spent shows after you water or nurture, and it follows your mastery and that item's specialization.",
+        "Breeding has an Animal Breeder mastery list, the same way crops and herbs do.",
+        "fixed: Laborer returns follow the house tier and the journal tier, and journal prices load from the market."
+      ]
+    }
+  ]
+}

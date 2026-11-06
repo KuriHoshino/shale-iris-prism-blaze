@@ -1,8 +1,8 @@
-import { Qt as string, Yt as object } from "../_libs/@better-auth/core+[...].mjs";
+import { Jt as number, Qt as string, Ut as array, Vt as _enum, Wt as boolean, Yt as object } from "../_libs/@better-auth/core+[...].mjs";
 import { r as createServerFn } from "./ssr.mjs";
 import { t as createServerRpc } from "./createServerRpc-CcvdN_gc.mjs";
-import { n as authMiddleware, t as DeskSchema } from "./desk-91LmkytP.mjs";
-//#region node_modules/.nitro/vite/services/ssr/assets/groups-BzFakGGJ.js
+import { n as authMiddleware, t as DeskSchema } from "./desk-BCx422vU.mjs";
+//#region node_modules/.nitro/vite/services/ssr/assets/groups-y6M_rb9A.js
 var SaveInput = object({
 	id: string().min(1).max(80).nullable(),
 	name: string().trim().min(1).max(80),
@@ -18,7 +18,7 @@ var listCraftGroups_createServerFn_handler = createServerRpc({
 	filename: "src/lib/forge/groups.ts"
 }, (opts) => listCraftGroups.__executeServer(opts));
 var listCraftGroups = createServerFn({ method: "GET" }).middleware([authMiddleware]).handler(listCraftGroups_createServerFn_handler, async ({ context }) => {
-	const { getSql } = await import("./db-CbBX1pmk.mjs").then((n) => n.t).then((n) => n.t);
+	const { getSql } = await import("./db-Cke2aE-u.mjs").then((n) => n.t).then((n) => n.t);
 	return (await (await getSql())`
       select id, name, summary, craft_count, updated_at
       from craft_groups
@@ -38,7 +38,7 @@ var loadCraftGroup_createServerFn_handler = createServerRpc({
 	filename: "src/lib/forge/groups.ts"
 }, (opts) => loadCraftGroup.__executeServer(opts));
 var loadCraftGroup = createServerFn({ method: "POST" }).middleware([authMiddleware]).validator((input) => object({ id: string().min(1).max(80) }).parse(input)).handler(loadCraftGroup_createServerFn_handler, async ({ context, data }) => {
-	const { getSql } = await import("./db-CbBX1pmk.mjs").then((n) => n.t).then((n) => n.t);
+	const { getSql } = await import("./db-Cke2aE-u.mjs").then((n) => n.t).then((n) => n.t);
 	const row = (await (await getSql())`
       select name, payload from craft_groups
       where id = ${data.id} and user_id = ${context.userId}
@@ -56,7 +56,7 @@ var saveCraftGroup_createServerFn_handler = createServerRpc({
 	filename: "src/lib/forge/groups.ts"
 }, (opts) => saveCraftGroup.__executeServer(opts));
 var saveCraftGroup = createServerFn({ method: "POST" }).middleware([authMiddleware]).validator((input) => SaveInput.parse(input)).handler(saveCraftGroup_createServerFn_handler, async ({ context, data }) => {
-	const { getSql } = await import("./db-CbBX1pmk.mjs").then((n) => n.t).then((n) => n.t);
+	const { getSql } = await import("./db-Cke2aE-u.mjs").then((n) => n.t).then((n) => n.t);
 	const sql = await getSql();
 	const payload = JSON.stringify(data.desk);
 	const count = data.desk.lines.length;
@@ -86,9 +86,58 @@ var deleteCraftGroup_createServerFn_handler = createServerRpc({
 	filename: "src/lib/forge/groups.ts"
 }, (opts) => deleteCraftGroup.__executeServer(opts));
 var deleteCraftGroup = createServerFn({ method: "POST" }).middleware([authMiddleware]).validator((input) => object({ id: string().min(1).max(80) }).parse(input)).handler(deleteCraftGroup_createServerFn_handler, async ({ context, data }) => {
-	const { getSql } = await import("./db-CbBX1pmk.mjs").then((n) => n.t).then((n) => n.t);
+	const { getSql } = await import("./db-Cke2aE-u.mjs").then((n) => n.t).then((n) => n.t);
 	await (await getSql())`delete from craft_groups where id = ${data.id} and user_id = ${context.userId}`;
 	return { ok: true };
 });
+var RecentRow = object({
+	id: string().min(1).max(40),
+	itemId: string().min(1).max(80),
+	enchant: number().int().min(0).max(4),
+	route: _enum(["direct", "upgrade"]),
+	city: string().min(1).max(40),
+	place: _enum([
+		"city",
+		"island",
+		"hideout"
+	]),
+	saved: boolean(),
+	at: number().int()
+});
+var loadCraftRecents_createServerFn_handler = createServerRpc({
+	id: "d3264cb1401d81fabc70c3b7d6716ac0e9e9773596cb576b684eefcc7c9ebbaf",
+	name: "loadCraftRecents",
+	filename: "src/lib/forge/groups.ts"
+}, (opts) => loadCraftRecents.__executeServer(opts));
+var loadCraftRecents = createServerFn({ method: "GET" }).middleware([authMiddleware]).handler(loadCraftRecents_createServerFn_handler, async ({ context }) => {
+	const { getSql } = await import("./db-Cke2aE-u.mjs").then((n) => n.t).then((n) => n.t);
+	const raw = (await (await getSql())`
+      select payload from craft_recents where user_id = ${context.userId}
+    `)[0]?.payload;
+	if (!raw) return [];
+	try {
+		const parsed = array(RecentRow).max(40).safeParse(JSON.parse(raw));
+		return parsed.success ? parsed.data : [];
+	} catch {
+		return [];
+	}
+});
+var saveCraftRecents_createServerFn_handler = createServerRpc({
+	id: "f016ba736eb31d53bc7afd5608500d5b816e587929a091c92c0838d1e08ac66a",
+	name: "saveCraftRecents",
+	filename: "src/lib/forge/groups.ts"
+}, (opts) => saveCraftRecents.__executeServer(opts));
+var saveCraftRecents = createServerFn({ method: "POST" }).middleware([authMiddleware]).validator((input) => object({ recents: array(RecentRow).max(40) }).parse(input)).handler(saveCraftRecents_createServerFn_handler, async ({ context, data }) => {
+	const { getSql } = await import("./db-Cke2aE-u.mjs").then((n) => n.t).then((n) => n.t);
+	const sql = await getSql();
+	const payload = JSON.stringify(data.recents);
+	await sql`
+      insert into craft_recents (user_id, payload)
+      values (${context.userId}, ${payload})
+      on conflict (user_id) do update
+      set payload = ${payload}, updated_at = now()
+    `;
+	return { ok: true };
+});
 //#endregion
-export { deleteCraftGroup_createServerFn_handler, listCraftGroups_createServerFn_handler, loadCraftGroup_createServerFn_handler, saveCraftGroup_createServerFn_handler };
+export { deleteCraftGroup_createServerFn_handler, listCraftGroups_createServerFn_handler, loadCraftGroup_createServerFn_handler, loadCraftRecents_createServerFn_handler, saveCraftGroup_createServerFn_handler, saveCraftRecents_createServerFn_handler };

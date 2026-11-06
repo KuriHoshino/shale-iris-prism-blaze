@@ -123,7 +123,7 @@ var HEADERS = { TSS_SHELL: "X-TSS_SHELL" };
 * the dev styles URL for route-scoped CSS collection.
 */
 async function getStartManifest(matchedRoutes) {
-	const { tsrStartManifest } = await import("../_tanstack-start-manifest_v-DF8CvodX.mjs");
+	const { tsrStartManifest } = await import("../_tanstack-start-manifest_v-DckQMw2D.mjs");
 	const startManifest = tsrStartManifest();
 	let routes = startManifest.routes;
 	routes[rootRouteId];
@@ -145,27 +145,35 @@ async function getStartManifest(matchedRoutes) {
 var manifest = {
 	"0a31263371f71b39edf22cba1c62c98ca7292577ab4adbbbb38d999d9f4086cd": {
 		functionName: "fetchHourlyPrices_createServerFn_handler",
-		importer: () => import("./prices-BxhYqjtI.mjs")
+		importer: () => import("./prices-CLJsA9V-.mjs")
 	},
 	"42f59d9d4471ffd5477b3a5b6a4ae02e4546bc795ce9cc1866e55a2aa79c129a": {
 		functionName: "fetchMarketPrices_createServerFn_handler",
-		importer: () => import("./prices-BxhYqjtI.mjs")
+		importer: () => import("./prices-CLJsA9V-.mjs")
 	},
 	"4bb74e2c1562f8eecf2090806bb0bbcd1875d93afd00c7d2d609699c92a58f56": {
 		functionName: "saveCraftGroup_createServerFn_handler",
-		importer: () => import("./groups-BzFakGGJ.mjs")
+		importer: () => import("./groups-y6M_rb9A.mjs")
 	},
 	"5e40a97356d4c329676960f6b064d42a72b45da9241052dda2d692c30964aacb": {
 		functionName: "loadCraftGroup_createServerFn_handler",
-		importer: () => import("./groups-BzFakGGJ.mjs")
+		importer: () => import("./groups-y6M_rb9A.mjs")
+	},
+	"d3264cb1401d81fabc70c3b7d6716ac0e9e9773596cb576b684eefcc7c9ebbaf": {
+		functionName: "loadCraftRecents_createServerFn_handler",
+		importer: () => import("./groups-y6M_rb9A.mjs")
+	},
+	"f016ba736eb31d53bc7afd5608500d5b816e587929a091c92c0838d1e08ac66a": {
+		functionName: "saveCraftRecents_createServerFn_handler",
+		importer: () => import("./groups-y6M_rb9A.mjs")
 	},
 	"f91a6c1069a80fedc83dbcaed7cb2e336842c9d2f88adcc0c9445338c67dacdc": {
 		functionName: "deleteCraftGroup_createServerFn_handler",
-		importer: () => import("./groups-BzFakGGJ.mjs")
+		importer: () => import("./groups-y6M_rb9A.mjs")
 	},
 	"fcda325398c22b6a5bf87e27d2b5246b08926ee17f10301aa3ab21cfa7ed84b3": {
 		functionName: "listCraftGroups_createServerFn_handler",
-		importer: () => import("./groups-BzFakGGJ.mjs")
+		importer: () => import("./groups-y6M_rb9A.mjs")
 	}
 };
 async function getServerFnById(id, access) {
@@ -1575,7 +1583,7 @@ var getBaseManifest = getProdBaseManifest;
 var createEarlyHintsForRequest = createEarlyHintsCollector;
 async function loadEntries() {
 	const [routerEntry, startEntry, pluginAdapters] = await Promise.all([
-		import("./router-D61K02fk.mjs").then((n) => n.t),
+		import("./router-BuXZlAnj.mjs").then((n) => n.t),
 		import("./start-5Z2QO8AU.mjs"),
 		import("./empty-plugin-adapters-D9UWiqvJ.mjs")
 	]);

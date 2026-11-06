@@ -1,7 +1,14 @@
 import { createRootRoute, HeadContent, Outlet, Scripts } from "@tanstack/react-router";
 import { AuthProvider } from "@/lib/auth/provider";
 import { PreviewHostBridge } from "@/components/preview-host-bridge";
+import "../styles.css";
 import appCss from "../styles.css?url";
+
+const stylesheet = import.meta.env.DEV
+  ? appCss.includes("?")
+    ? `${appCss}&direct`
+    : `${appCss}?direct`
+  : appCss;
 
 export const Route = createRootRoute({
   head: () => ({
@@ -15,7 +22,7 @@ export const Route = createRootRoute({
       { rel: "icon", type: "image/svg+xml", href: "/favicon.svg" },
       { rel: "preconnect", href: "https://render.albiononline.com" },
       { rel: "dns-prefetch", href: "https://render.albiononline.com" },
-      { rel: "stylesheet", href: appCss },
+      { rel: "stylesheet", href: stylesheet },
       { rel: "manifest", href: "/__grok/manifest.webmanifest" },
       { rel: "apple-touch-icon", href: "/__grok/icon-180.png" },
       {
