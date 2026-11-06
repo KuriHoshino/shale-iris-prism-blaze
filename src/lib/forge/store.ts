@@ -2,6 +2,7 @@ import { create } from "zustand"
 import { createJSONStorage, persist } from "zustand/middleware"
 import type { PriceQuote } from "./prices"
 import { fetchMarketPrices, loadMarketPrices } from "./prices"
+import { marketApiBase } from "./marketBase"
 import type { BuyMode, Place, SellMode } from "./formulas"
 import type { ServerId, HoBiome, HoRegion } from "./rules"
 import { MARKETS } from "./rules"
@@ -49,7 +50,7 @@ export type Line = {
   matModes?: Record<string, "sell" | "buy">
 }
 
-export type View = "bench" | "returns" | "study" | "reroll" | "codex" | "farm" | "labor" | "recent" | "flip"
+export type View = "dash" | "bench" | "returns" | "study" | "reroll" | "farm" | "labor" | "recent" | "flip"
 
 export type RecentSearch = {
   id: string
@@ -184,7 +185,7 @@ export function priceWatchKey(state: { server: string; lines: Line[] }) {
 export const useForge = create<ForgeState>()(
   persist(
     (set, get) => ({
-      view: "bench",
+      view: "dash",
       server: "asia",
       premium: true,
       buyCity: "Lymhurst",
@@ -323,10 +324,12 @@ export const useForge = create<ForgeState>()(
             locations: [...MARKETS],
             qualities: [1, 2, 3, 4, 5],
           }
+          const marketBase = marketApiBase()
           const result =
             import.meta.env.VITE_PAGES === "1"
               ? await loadMarketPrices(request)
               : await fetchMarketPrices({ data: request })
+          if (!marketBase) throw new Error("missing market base")
           if (get().server !== server) {
             loadAgain = true
             return

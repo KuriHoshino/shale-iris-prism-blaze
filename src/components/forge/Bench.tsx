@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 import { RefreshCw, Trash2, Check } from "lucide-react"
-import { craftMath } from "@/lib/forge/formulas"
+import { craftMath, specGroupBonus } from "@/lib/forge/formulas"
 import { enchantsOf, getItem, journalFor, marketId, matName, matWeight, upgradeSource, variantOf } from "@/lib/forge/lookup"
 import { CRAFT_CITIES, HO_BIOMES, MARKETS, biomeById, biomeFavors, bonusBiome } from "@/lib/forge/rules"
 import { moneySide, readQuote, useForge, type Line, type PriceBook } from "@/lib/forge/store"
-import { Num, Select, Toggle, exact, fieldClass, orderAge, pct, priceAge, silver } from "./fields"
+import { ItemIcon, Num, Select, Toggle, exact, fieldClass, itemMark, orderAge, pct, priceAge, silver } from "./fields"
 import { HourlyChart } from "./Hourly"
 import { ItemPicker } from "./Picker"
 
@@ -24,7 +24,7 @@ function buyPlace(book: PriceBook, id: string, city: string, quality: number, si
   return lookup(book, id, city, quality, side, null).from || city
 }
 
-function evaluateLine(line: Line, state: ReturnType<typeof useForge.getState>) {
+export function evaluateLine(line: Line, state: ReturnType<typeof useForge.getState>) {
   const item = getItem(line.itemId)
   if (!item) return null
   const raw = variantOf(item, line.enchant, line.route)
@@ -81,6 +81,7 @@ function evaluateLine(line: Line, state: ReturnType<typeof useForge.getState>) {
     mastery: line.mastery,
     specialist: line.specialist,
     siblings: line.siblings,
+    itemId: item.id,
     focusOverride: line.focusOverride,
     premium: state.premium,
     buyMode: state.buyMode,
@@ -166,12 +167,13 @@ export function Bench() {
     state.patchLine(line.uid, { shopCity: product.low.city, matCities })
   }, [item, line, variant, state])
 
-  const shop = useMemo(() => {
-    const rows = new Map<string, { id: string; city: string; qty: number; cost: number | null }>()
-    let weight = 0
-    for (const entry of state.lines) {
+  const shops = useMemo(() => {
+    return state.lines.flatMap((entry) => {
       const result = evaluateLine(entry, state)
-      if (!result) continue
+      if (!result) return []
+      const named = getItem(entry.itemId)
+      const rows = new Map<string, { id: string; city: string; qty: number; cost: number | null }>()
+      let weight = 0
       for (const mat of result.math.consumed) {
         const picked = entry.matCities?.[mat.id] || entry.shopCity || state.buyCity
         const chosen = picked === "Black Market" ? CRAFT_CITIES[0] : picked
@@ -184,10 +186,9 @@ export function Bench() {
         weight += mat.qty * matWeight(mat.id)
       }
       if (!entry.flip && entry.journal) {
-        const made = getItem(entry.itemId)
         const side = state.buyMode === "instant" ? "sell" : "buy"
         for (const fill of result.math.journalRows) {
-          const book = made ? journalFor(made.journal, fill.tier) : undefined
+          const book = named ? journalFor(named.journal, fill.tier) : undefined
           if (!book) continue
           const id = `${book.id}_EMPTY`
           const picked = entry.matCities?.[id] || entry.shopCity || state.buyCity
@@ -198,12 +199,52 @@ export function Bench() {
           rows.set(key, { id, city, qty: current.qty + fill.count, cost: current.cost })
         }
       }
-    }
-    return {
-      weight,
-      rows: [...rows.values()].sort((a, b) => b.qty - a.qty),
-    }
+      return [
+        {
+          uid: entry.uid,
+          itemId: entry.itemId,
+          enchant: entry.enchant,
+          name: named ? `${named.name} .${entry.enchant}` : "Recipe",
+          weight,
+          rows: [...rows.values()].sort((a, b) => b.qty - a.qty),
+        },
+      ]
+    })
   }, [state])
+
+  const listShops = useMemo(() => {
+    const picked = shops.filter((craft) => merged.includes(craft.uid))
+    if (picked.length < 2) return shops
+    const rows = new Map<string, { id: string; city: string; qty: number; cost: number | null }>()
+    let weight = 0
+    for (const craft of picked) {
+      weight += craft.weight
+      for (const row of craft.rows) {
+        const key = `${row.id}|${row.city}`
+        const current = rows.get(key)
+        if (!current) {
+          rows.set(key, { ...row })
+          continue
+        }
+        rows.set(key, {
+          ...current,
+          qty: current.qty + row.qty,
+          cost: current.cost == null || row.cost == null ? null : current.cost + row.cost,
+        })
+      }
+    }
+    return [
+      {
+        uid: picked.map((craft) => craft.uid).join("|"),
+        itemId: undefined as string | undefined,
+        enchant: 0,
+        name: picked.map((craft) => craft.name).join(" + "),
+        weight,
+        rows: [...rows.values()].sort((a, b) => b.qty - a.qty),
+      },
+      ...shops.filter((craft) => !merged.includes(craft.uid)),
+    ]
+  }, [shops, merged])
 
   const plan = useMemo(() => {
     const rows = state.lines.map((entry) => {
@@ -239,9 +280,11 @@ export function Bench() {
   const fromPool = perFocus == null ? null : perFocus * 10000
 
   async function copyList() {
-    const text = shop.rows
-      .map((row) => `${Math.ceil(row.qty)}  ${matName(row.id)}  · ${row.city}`)
-      .join("\n")
+    const text = listShops
+      .map((craft) =>
+        [`${craft.name}`, ...craft.rows.map((row) => `${Math.ceil(row.qty)}  ${matName(row.id)}  · ${row.city}`)].join("\n"),
+      )
+      .join("\n\n")
     try {
       await navigator.clipboard.writeText(text)
     } catch {
@@ -252,7 +295,7 @@ export function Bench() {
   }
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-section">
       <div className="flex gap-2 overflow-x-auto pb-1">
         {state.lines.map((entry) => {
           const named = getItem(entry.itemId)
@@ -263,11 +306,12 @@ export function Bench() {
               type="button"
               onClick={() => state.setActive(entry.uid)}
               className={
-                "h-11 shrink-0 rounded-full border px-3 text-sm " +
+                "inline-flex h-11 shrink-0 items-center gap-2 rounded-full border px-2 text-sm " +
                 (on ? "border-brass text-brass" : "border-line text-muted")
               }
             >
-              {named ? `${named.name} .${entry.enchant}` : "Recipe"}
+              {named ? <ItemIcon id={named.id} enchant={entry.enchant} size={28} /> : null}
+              {named ? `${named.name} [${named.tier}.${entry.enchant}]` : "Recipe"}
             </button>
           )
         })}
@@ -296,12 +340,17 @@ export function Bench() {
 
         <section className="rounded-lg border border-line bg-panel p-4">
           <div className="flex items-start justify-between gap-3">
-            <div>
-              <h2 className="font-display text-2xl text-parchment">{item.name}</h2>
+            <div className="flex items-center gap-3">
+              <ItemIcon id={item.id} enchant={variant.enchant} quality={state.quality} size={56} />
+              <div>
+              <h2 className="font-display text-2xl text-parchment">
+                {item.name} <span className="text-muted">[{item.tier}.{variant.enchant}]</span>
+              </h2>
               <p className="mt-1 text-sm text-muted">
                 T{item.tier}.{variant.enchant} · {item.station}
                 {item.study ? " · can be studied" : " · no studying"}
               </p>
+              </div>
             </div>
             {state.lines.length > 1 ? (
               <button
@@ -356,8 +405,11 @@ export function Bench() {
                   const bought = math.consumed.find((row) => row.id === mat.id)
                   const qty = bought?.qty ?? mat.qty * line.runs
                   return (
-                    <li key={mat.id} className="flex items-baseline justify-between gap-3">
-                      <span className="text-parchment">{matName(mat.id)}</span>
+                    <li key={mat.id} className="flex items-center justify-between gap-3">
+                      <span className="flex items-center gap-2 text-parchment">
+                        <ItemIcon id={mat.id} size={32} />
+                        {matName(mat.id)} <span className="text-muted">[{itemMark(mat.id)}]</span>
+                      </span>
                       <span className="tabular-nums text-muted">
                         {exact(qty)} for {exact(line.runs)} · {exact(mat.qty)} each
                       </span>
@@ -517,7 +569,13 @@ export function Bench() {
           </div>
           <p className="mt-2 text-xs text-muted">
             Efficiency {exact(math.efficiency)} · focus {exact(math.focusEach)} each · {exact(math.focusTotal)} for the batch.
-            Own specialist is 280 per level, mastery and each sibling specialist are 30.
+            {(() => {
+              const group = specGroupBonus(item.id, item.category)
+              const quality = group.quality
+                ? ` and ${group.quality.toLocaleString("en-US", { maximumFractionDigits: 4 })} quality`
+                : ""
+              return ` Own specialist is ${exact(250 + group.focus)} focus per level. Mastery is 30. Each other spec adds ${exact(group.focus)} focus${quality}.`
+            })()}
           </p>
         </section>
 
@@ -678,6 +736,7 @@ export function Bench() {
               }}
               priceBox={false}
               manual
+              emv={royalEmv(state.prices, productId, state.quality, "sell")}
             />
             {line.journal && journal ? (
               <div className="grid gap-3 md:grid-cols-2">
@@ -759,21 +818,55 @@ export function Bench() {
               {copied ? "Copied" : "Copy"}
             </button>
           </div>
-          <p className="mt-1 text-sm text-muted">
-            Profit {silver(math.profit)} · about {exact(shop.weight)} kg
-          </p>
-          <ul className="mt-3 flex flex-col">
-            {shop.rows.map((row) => (
-              <li key={`${row.id}|${row.city}`} className="flex items-baseline justify-between gap-3 border-b border-line py-2 text-sm last:border-b-0">
-                <span>
-                  {matName(row.id)}
-                  <span className="ml-2 text-muted">buy {Math.ceil(row.qty)}</span>
-                  <span className="ml-2 text-brass">{row.city}</span>
-                </span>
-                <span className="tabular-nums text-muted">{silver(row.cost)}</span>
-              </li>
-            ))}
-          </ul>
+          <div className="mt-3 overflow-x-auto">
+            <div className="grid min-w-[40rem] grid-cols-[minmax(8rem,1fr)_minmax(14rem,1.4fr)_9rem] gap-x-3 text-sm">
+              <p className="border-b border-line py-2 text-xs tracking-wide text-muted uppercase">Craft</p>
+              <p className="border-b border-line py-2 text-xs tracking-wide text-muted uppercase">Buy</p>
+              <p className="border-b border-line py-2 text-right text-xs tracking-wide text-muted uppercase">Combined price</p>
+              {Array.from({ length: Math.max(10, listShops.length) }, (_, index) => listShops[index] ?? null).flatMap((craft, index) => {
+                const combined = craft?.rows.every((row) => row.cost != null)
+                  ? craft.rows.reduce((sum, row) => sum + (row.cost ?? 0), 0)
+                  : null
+                return [
+                  <p key={`name-${craft?.uid ?? index}`} className="flex items-center gap-2 border-b border-line py-2 text-parchment">
+                    {craft?.itemId ? <ItemIcon id={craft.itemId} enchant={craft.enchant} quality={state.quality} size={36} /> : null}
+                    <span>
+                    {craft ? craft.name : "—"}
+                    {craft ? <span className="mt-1 block text-xs text-muted">about {exact(craft.weight)} kg</span> : null}
+                    </span>
+                  </p>,
+                  <ul key={`buy-${craft?.uid ?? index}`} className="border-b border-line py-2">
+                    {craft?.rows.map((row) => (
+                      <li key={`${craft.uid}|${row.id}|${row.city}`} className="flex items-center justify-between gap-3 py-0.5">
+                        <span className="flex min-w-0 items-center gap-2">
+                          <ItemIcon id={row.id} size={32} />
+                          <span>
+                            {matName(row.id)} {itemMark(row.id) ? <span className="text-muted">[{itemMark(row.id)}]</span> : null}
+                            <span className="ml-2 text-muted">buy {Math.ceil(row.qty)}</span>
+                            <span className="ml-2 text-brass">{row.city}</span>
+                          </span>
+                        </span>
+                        <span className="tabular-nums text-muted">{silver(row.cost)}</span>
+                      </li>
+                    ))}
+                    {craft && craft.rows.length === 0 ? <li className="text-muted">No materials</li> : null}
+                    {!craft ? <li className="text-muted">—</li> : null}
+                  </ul>,
+                  <p key={`sum-${craft?.uid ?? index}`} className="border-b border-line py-2 text-right tabular-nums text-parchment">
+                    {craft ? silver(combined) : "—"}
+                  </p>,
+                ]
+              })}
+              <p className="col-span-2 py-2 text-parchment">All crafts</p>
+              <p className="py-2 text-right tabular-nums text-parchment">
+                {silver(
+                  listShops.every((craft) => craft.rows.every((row) => row.cost != null))
+                    ? listShops.reduce((sum, craft) => sum + craft.rows.reduce((rowSum, row) => rowSum + (row.cost ?? 0), 0), 0)
+                    : null,
+                )}
+              </p>
+            </div>
+          </div>
         </section>
       </div>
 
@@ -898,9 +991,15 @@ function MatCard({
   onPrice: (value: number | null) => void
 }) {
   const kind = side === "sell" ? "Sell order" : "Buy order"
+  const emv = royalEmv(prices, itemId, quality, side)
   return (
     <article className="rounded-lg border border-line bg-ink p-3">
-      <h4 className="text-sm font-medium text-parchment">{name}</h4>
+      <h4 className="flex items-center gap-2 text-sm font-medium text-parchment">
+        <ItemIcon id={itemId} quality={quality} size={40} />
+        <span>
+          {name} {itemMark(itemId) ? <span className="text-muted">[{itemMark(itemId)}]</span> : null}
+        </span>
+      </h4>
       <p className="mt-2 text-sm text-parchment">
         Amount: {exact(amount)}
         {leftover > 0 ? <span className="text-muted"> ({exact(leftover)} leftover)</span> : null}
@@ -922,6 +1021,7 @@ function MatCard({
           })}
         </select>
       </label>
+      <EmvSelect emv={emv} value={userPrice} onPick={onPrice} />
       <label className="mt-2 block text-xs text-muted">
         Price type
         <select
@@ -951,6 +1051,47 @@ function MatCard({
         <span className="text-lg font-semibold tabular-nums text-parchment">{silver(total)}</span>
       </p>
     </article>
+  )
+}
+
+function royalEmv(book: PriceBook, id: string, quality: number, side: "sell" | "buy") {
+  const royal = ["Thetford", "Lymhurst", "Bridgewatch", "Martlock", "Fort Sterling"] as const
+  const samples = royal
+    .map((city) => moneySide(readQuote(book, id, city, quality), side))
+    .filter((price): price is number => price != null)
+  if (!samples.length) return null
+  return samples.reduce((sum, price) => sum + price, 0) / samples.length
+}
+
+function EmvSelect({
+  emv,
+  value,
+  onPick,
+}: {
+  emv: number | null
+  value: number | null
+  onPick: (price: number | null) => void
+}) {
+  const usingEmv = value != null && emv != null && value === emv
+  const usingCustom = value != null && !usingEmv
+  return (
+    <label className="mt-2 block text-xs text-muted">
+      EMV price
+      <select
+        className={fieldClass + " mt-1"}
+        value={usingEmv ? "emv" : usingCustom ? "custom" : "city"}
+        onChange={(event) => {
+          if (event.target.value === "emv" && emv != null) onPick(emv)
+          else if (event.target.value === "city") onPick(null)
+        }}
+      >
+        <option value="city">City price</option>
+        <option value="emv" disabled={emv == null}>
+          {emv == null ? "EMV · no royal prices" : `EMV · ${silver(emv)}`}
+        </option>
+        {usingCustom ? <option value="custom">Manual · {silver(value)}</option> : null}
+      </select>
+    </label>
   )
 }
 
@@ -1003,6 +1144,7 @@ function PriceRow({
   age,
   priceBox = true,
   manual = false,
+  emv,
 }: {
   role: string
   name: string
@@ -1017,6 +1159,7 @@ function PriceRow({
   age?: string
   priceBox?: boolean
   manual?: boolean
+  emv?: number | null
 }) {
   const locked = value != null && market != null && value === market
   return (
@@ -1027,6 +1170,7 @@ function PriceRow({
         {hint ? <span className="ml-2 text-xs text-muted">using {hint}</span> : null}
       </span>
       <Select label={cityLabel} value={city} onChange={onCity} options={cities} />
+      {emv !== undefined ? <EmvSelect emv={emv} value={value} onPick={onChange} /> : null}
       {manual ? (
         <label className="text-xs text-muted">
           Manual price

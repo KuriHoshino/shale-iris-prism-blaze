@@ -577,7 +577,7 @@ export const FARM_ROWS: FarmRow[] = [
     secondsPerNutrition: 183.34,
     food: "plants",
     favorite: "T7_CORN",
-    favoriteName: "Bundle of Corn",
+    favoriteName: "Bunch of Corn",
     favoriteBonus: 1.0,
     baseYield: 0.9111,
     careBonus: 0.1778,
@@ -1118,6 +1118,68 @@ const ISLAND_BONUS: Record<string, readonly IslandCity[]> = {
   T5_FARM_GOOSE_BABY: ["Lymhurst"],
   T6_FARM_SHEEP_BABY: ["Fort Sterling"],
   T8_FARM_COW_BABY: ["Martlock"],
+}
+
+export function npcSeedPrice(tier: number) {
+  return ({ 1: 2000, 2: 3000, 3: 5000, 4: 7500, 5: 10000, 6: 15000, 7: 22500, 8: 30000 } as Record<number, number>)[tier] ?? 0
+}
+
+/** Grown item. The seed return tables use the same rates as the farming profit calculator. */
+export const CROP_PRODUCT: Record<string, { id: string; name: string }> = {
+  T1_FARM_CARROT_SEED: { id: "T1_CARROT", name: "Carrot" },
+  T2_FARM_BEAN_SEED: { id: "T2_BEAN", name: "Bean" },
+  T3_FARM_WHEAT_SEED: { id: "T3_WHEAT", name: "Wheat" },
+  T4_FARM_TURNIP_SEED: { id: "T4_TURNIP", name: "Turnip" },
+  T5_FARM_CABBAGE_SEED: { id: "T5_CABBAGE", name: "Cabbage" },
+  T6_FARM_POTATO_SEED: { id: "T6_POTATO", name: "Potatoes" },
+  T7_FARM_CORN_SEED: { id: "T7_CORN", name: "Bunch of Corn" },
+  T8_FARM_PUMPKIN_SEED: { id: "T8_PUMPKIN", name: "Pumpkin" },
+  T2_FARM_AGARIC_SEED: { id: "T2_AGARIC", name: "Arcane Agaric" },
+  T3_FARM_COMFREY_SEED: { id: "T3_COMFREY", name: "Brightleaf Comfrey" },
+  T4_FARM_BURDOCK_SEED: { id: "T4_BURDOCK", name: "Crenellated Burdock" },
+  T5_FARM_TEASEL_SEED: { id: "T5_TEASEL", name: "Dragon Teasel" },
+  T6_FARM_FOXGLOVE_SEED: { id: "T6_FOXGLOVE", name: "Elusive Foxglove" },
+  T7_FARM_MULLEIN_SEED: { id: "T7_MULLEIN", name: "Firetouched Mullein" },
+  T8_FARM_YARROW_SEED: { id: "T8_YARROW", name: "Ghoul Yarrow" },
+}
+
+/** Average produce is 4.5. Premium doubles it. A matching island adds 10% to produce only. */
+export function produceEach(premium: boolean, islandBonus: boolean) {
+  return 4.5 * (premium ? 2 : 1) * (islandBonus ? 1.1 : 1)
+}
+
+export function farmProfit(
+  row: FarmRow,
+  count: number,
+  premium: boolean,
+  islandBonus: boolean,
+  seedPrice: number,
+  productPrice: number,
+  wormPrice: number,
+  focusEach: number,
+) {
+  const plants = Math.max(1, Math.floor(count))
+  const grown = produceEach(premium, islandBonus)
+  const watered = row.baseYield + row.careBonus * row.actions
+  const unwateredReplace = seedPrice * Math.max(0, 1 - row.baseYield)
+  const wateredShort = Math.max(0, 1 - watered)
+  const surplus = Math.max(0, watered - 1)
+  const worms = 0.1 * wormPrice
+  const crop = grown * productPrice
+  const unwateredEach = crop + worms - unwateredReplace
+  const wateredEach = crop + worms + surplus * seedPrice - seedPrice * wateredShort
+  const gain = wateredEach - unwateredEach
+  return {
+    grown,
+    watered,
+    unwateredReplace,
+    surplus,
+    unwateredEach,
+    wateredEach,
+    unwateredPlot: unwateredEach * plants,
+    wateredPlot: wateredEach * plants,
+    perFocus: focusEach > 0 ? gain / focusEach : 0,
+  }
 }
 
 export function islandCities(id: string) {

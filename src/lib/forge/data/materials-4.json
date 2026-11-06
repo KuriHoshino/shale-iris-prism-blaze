@@ -487,26 +487,6 @@
     "name": "Expert's Iron-clad Staff",
     "weight": 10.1
   },
-  "T5_2H_IRONGAUNTLETS_HELL": {
-    "name": "Expert's Black Hands",
-    "weight": 10.1
-  },
-  "T5_ARTEFACT_2H_IRONGAUNTLETS_HELL": {
-    "name": "Expert's Black Leather",
-    "weight": 2
-  },
-  "T5_2H_IRONGAUNTLETS_HELL@1": {
-    "name": "Expert's Black Hands",
-    "weight": 10.1
-  },
-  "T5_2H_IRONGAUNTLETS_HELL@2": {
-    "name": "Expert's Black Hands",
-    "weight": 10.1
-  },
-  "T5_2H_IRONGAUNTLETS_HELL@3": {
-    "name": "Expert's Black Hands",
-    "weight": 10.1
-  },
   "T5_2H_KNUCKLES_AVALON": {
     "name": "Expert's Fists of Avalon",
     "weight": 10.1
@@ -3567,26 +3547,6 @@
     "name": "Master's Iron-clad Staff",
     "weight": 15.2
   },
-  "T6_2H_IRONGAUNTLETS_HELL": {
-    "name": "Master's Black Hands",
-    "weight": 15.2
-  },
-  "T6_ARTEFACT_2H_IRONGAUNTLETS_HELL": {
-    "name": "Master's Black Leather",
-    "weight": 2
-  },
-  "T6_2H_IRONGAUNTLETS_HELL@1": {
-    "name": "Master's Black Hands",
-    "weight": 15.2
-  },
-  "T6_2H_IRONGAUNTLETS_HELL@2": {
-    "name": "Master's Black Hands",
-    "weight": 15.2
-  },
-  "T6_2H_IRONGAUNTLETS_HELL@3": {
-    "name": "Master's Black Hands",
-    "weight": 15.2
-  },
   "T6_2H_KNUCKLES_AVALON": {
     "name": "Master's Fists of Avalon",
     "weight": 15.2
@@ -6645,26 +6605,6 @@
   },
   "T7_2H_IRONCLADEDSTAFF@4": {
     "name": "Grandmaster's Iron-clad Staff",
-    "weight": 22.8
-  },
-  "T7_2H_IRONGAUNTLETS_HELL": {
-    "name": "Grandmaster's Black Hands",
-    "weight": 22.8
-  },
-  "T7_ARTEFACT_2H_IRONGAUNTLETS_HELL": {
-    "name": "Grandmaster's Black Leather",
-    "weight": 2
-  },
-  "T7_2H_IRONGAUNTLETS_HELL@1": {
-    "name": "Grandmaster's Black Hands",
-    "weight": 22.8
-  },
-  "T7_2H_IRONGAUNTLETS_HELL@2": {
-    "name": "Grandmaster's Black Hands",
-    "weight": 22.8
-  },
-  "T7_2H_IRONGAUNTLETS_HELL@3": {
-    "name": "Grandmaster's Black Hands",
     "weight": 22.8
   },
   "T7_2H_KNUCKLES_AVALON": {

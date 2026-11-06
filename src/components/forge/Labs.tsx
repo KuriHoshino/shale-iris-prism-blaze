@@ -9,9 +9,9 @@ import {
   wholeReturn,
 } from "@/lib/forge/formulas"
 import { enchantsOf, getItem, matName, searchItems, variantOf } from "@/lib/forge/lookup"
-import { CRAFT_CITIES, GROUP_LABEL, HO_BIOMES, REFINE_LINE, specialtyBonus } from "@/lib/forge/rules"
+import { CRAFT_CITIES, HO_BIOMES, REFINE_LINE, specialtyBonus } from "@/lib/forge/rules"
 import { useForge } from "@/lib/forge/store"
-import { Num, Select, Toggle, exact, pct, silver } from "./fields"
+import { ItemIcon, Num, Select, Toggle, exact, itemMark, pct, silver } from "./fields"
 import { ItemPicker } from "./Picker"
 
 const CATEGORIES = [
@@ -79,9 +79,9 @@ export function ReturnsLab() {
   const spec = variant ? focusFromRefine(variant.focus, specs, tier) : undefined
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="grid gap-4 lg:grid-cols-2">
-        <section className="rounded-lg border border-line bg-panel p-4">
+    <div className="flex flex-col gap-section">
+      <div className="grid gap-section lg:grid-cols-2">
+        <section className="rounded-lg border border-line bg-panel p-5">
           <h2 className="font-display text-2xl">Refining return</h2>
           <p className="mt-2 text-sm text-muted">
             Pick the resource, the tier, and the enchantment. Each tier spec is 0–100. This tier adds 250, and every tier
@@ -181,14 +181,15 @@ export function ReturnsLab() {
             <Toggle on={focus} onClick={() => setFocus((on) => !on)}>Use focus</Toggle>
           </div>
         </section>
-        <section className="rounded-lg border border-line bg-panel p-4">
+        <section className="rounded-lg border border-line bg-panel p-5">
           <p className="text-sm text-muted">Resource return rate</p>
           <p className="font-sans text-4xl font-semibold tabular-nums tracking-tight text-brass">{pct(rrr)}</p>
           {item && variant && spec ? (
             <div className="mt-4 border-t border-line pt-4">
               <div className="flex items-baseline justify-between gap-3">
-                <p className="text-parchment">
-                  T{tier} {item.name} .{enchantLevel}
+                <p className="flex items-center gap-2 text-parchment">
+                  <ItemIcon id={item.id} enchant={enchantLevel} size={36} />
+                  {item.name} <span className="text-muted">[{item.tier}.{enchantLevel}]</span>
                 </p>
                 <p className="tabular-nums text-brass">{focus ? `${exact(spec.cost)} focus` : "No focus"}</p>
               </div>
@@ -196,9 +197,10 @@ export function ReturnsLab() {
                 {variant.mats.map((mat) => {
                   const back = mat.ret ? wholeReturn(mat.qty * runs * rrr) : 0
                   return (
-                    <li key={mat.id + String(mat.qty)} className="flex justify-between gap-3 border-b border-line py-2 text-sm">
-                      <span>
-                        {matName(mat.id)} × {exact(mat.qty)}
+                    <li key={mat.id + String(mat.qty)} className="flex items-center justify-between gap-3 border-b border-line py-2 text-sm">
+                      <span className="flex items-center gap-2">
+                        <ItemIcon id={mat.id} size={32} />
+                        {matName(mat.id)} {itemMark(mat.id) ? <span className="text-muted">[{itemMark(mat.id)}]</span> : null} × {exact(mat.qty)}
                       </span>
                       <span className="tabular-nums text-muted">{mat.ret ? `${exact(back)} back` : "not returned"}</span>
                     </li>
@@ -250,8 +252,8 @@ export function StudyLab() {
   }
 
   return (
-    <div className="grid gap-4 lg:grid-cols-2">
-      <section className="rounded-lg border border-line bg-panel p-4">
+    <div className="grid gap-section lg:grid-cols-2">
+      <section className="rounded-lg border border-line bg-panel p-5">
         <h2 className="font-display text-2xl">Study and repair</h2>
         <p className="mt-2 text-sm text-muted">
           Studying destroys the item at its crafting station and pays 275% of crafting fame. Refining stations cannot
@@ -294,10 +296,13 @@ export function StudyLab() {
           <Toggle on={focus} onClick={() => setFocus((on) => !on)}>Study with focus</Toggle>
         </div>
       </section>
-      <section className="rounded-lg border border-line bg-panel p-4">
+      <section className="rounded-lg border border-line bg-panel p-5">
         {item && variant ? (
           <>
-            <h3 className="font-display text-xl">{item.name}</h3>
+            <h3 className="flex items-center gap-2 font-display text-xl">
+              <ItemIcon id={item.id} enchant={enchant} size={40} />
+              {item.name} <span className="text-muted">[{item.tier}.{enchant}]</span>
+            </h3>
             <p className="text-sm text-muted">{item.study ? item.station : "This station does not allow studying."}</p>
             <p className="mt-4 text-sm text-muted">Study fame / item</p>
             <p className="font-sans text-4xl font-semibold tabular-nums tracking-tight text-brass">
@@ -366,8 +371,8 @@ export function CitiesLab() {
   })
 
   return (
-    <div className="grid gap-4 lg:grid-cols-2">
-      <section className="rounded-lg border border-line bg-panel p-4">
+    <div className="grid gap-section lg:grid-cols-2">
+      <section className="rounded-lg border border-line bg-panel p-5">
         <h2 className="font-display text-2xl">City bonuses</h2>
         <p className="mt-2 text-sm text-muted">
           Royal cities start at +18, plus a specialty when the city matches. Map quality 1–6 starts a matching craft at 1,
@@ -397,7 +402,7 @@ export function CitiesLab() {
           ))}
         </ul>
       </section>
-      <section className="rounded-lg border border-line bg-panel p-4">
+      <section className="rounded-lg border border-line bg-panel p-5">
         <h3 className="font-display text-xl">{biome.label}</h3>
         <p className="text-sm text-muted">{biome.favors}</p>
         <p className="mt-2 text-sm text-muted">
@@ -419,103 +424,6 @@ export function CitiesLab() {
           <Num label="Hideout level" min={1} value={power} onChange={setPower} />
         </div>
         <p className="mt-4 font-sans text-3xl font-semibold tabular-nums text-brass">{pct(returnRate(hideout.total))}</p>
-      </section>
-    </div>
-  )
-}
-
-export function Codex() {
-  const addLine = useForge((s) => s.addLine)
-  const setView = useForge((s) => s.setView)
-  useForge((s) => s.catalogRev)
-  const [itemId, setItemId] = useState("T4_MAIN_SWORD")
-  const [enchant, setEnchant] = useState(0)
-  const [route, setRoute] = useState<"direct" | "upgrade">("direct")
-  const item = getItem(itemId)
-  const variant = item ? variantOf(item, enchant, route) : undefined
-  return (
-    <div className="grid gap-4 lg:grid-cols-2">
-      <section className="rounded-lg border border-line bg-panel p-4">
-        <h2 className="font-display text-2xl">Recipe codex</h2>
-        <p className="mt-2 text-sm text-muted">Every craft from the public item data. Pick one to read the materials.</p>
-        <div className="mt-4">
-          <ItemPicker
-            compact
-            onPick={(id) => {
-              setItemId(id)
-              setEnchant(0)
-              setRoute("direct")
-            }}
-          />
-        </div>
-      </section>
-      <section className="rounded-lg border border-line bg-panel p-4">
-        {item && variant ? (
-          <>
-            <h3 className="font-display text-xl">{item.name}</h3>
-            <p className="text-sm text-muted">
-              T{item.tier} · {item.station} · {GROUP_LABEL[item.group] ?? item.group}
-            </p>
-            <div className="mt-3 grid grid-cols-2 gap-3">
-              <Select
-                label="Enchant"
-                value={String(enchant)}
-                onChange={(value) => setEnchant(Number(value))}
-                options={enchantsOf(item).map((level) => ({ value: String(level), label: `.${level}` }))}
-              />
-              <Select
-                label="Route"
-                value={route}
-                onChange={(value) => setRoute(value as "direct" | "upgrade")}
-                options={[
-                  { value: "direct", label: "Direct" },
-                  { value: "upgrade", label: "Upgrade" },
-                ]}
-              />
-            </div>
-            <dl className="mt-4 grid grid-cols-2 gap-3 text-sm">
-              <div>
-                <dt className="text-muted">Base focus</dt>
-                <dd className="tabular-nums">{exact(variant.focus)}</dd>
-              </div>
-              <div>
-                <dt className="text-muted">Item value</dt>
-                <dd className="tabular-nums">{exact(variant.value)}</dd>
-              </div>
-              <div>
-                <dt className="text-muted">Craft fame / item</dt>
-                <dd className="tabular-nums">{exact(variant.fame)}</dd>
-              </div>
-              <div>
-                <dt className="text-muted">Output</dt>
-                <dd className="tabular-nums">{exact(variant.output)}</dd>
-              </div>
-            </dl>
-            <ul className="mt-4">
-              {variant.mats.map((mat) => (
-                <li key={mat.id + String(mat.qty)} className="flex justify-between border-b border-line py-2 text-sm">
-                  <span>
-                    {matName(mat.id)}
-                    {mat.ret ? "" : " · not returned"}
-                  </span>
-                  <span className="tabular-nums">{exact(mat.qty)}</span>
-                </li>
-              ))}
-            </ul>
-            <button
-              type="button"
-              onClick={() => {
-                addLine(item.id)
-                setView("bench")
-              }}
-              className="mt-4 h-11 rounded-lg bg-brass px-4 text-sm font-semibold text-ink"
-            >
-              Add Craft
-            </button>
-          </>
-        ) : (
-          <p className="text-muted">Pick a recipe.</p>
-        )}
       </section>
     </div>
   )
@@ -544,8 +452,8 @@ export function RerollLab() {
   }
 
   return (
-    <div className="grid gap-4 lg:grid-cols-2">
-      <section className="rounded-lg border border-line bg-panel p-4">
+    <div className="grid gap-section lg:grid-cols-2">
+      <section className="rounded-lg border border-line bg-panel p-5">
         <h2 className="font-display text-2xl">Quality reroll</h2>
         <p className="mt-2 text-sm text-muted">
           At a repair station, one attempt costs item value × server multiplier × the quality modifier. Quality cannot
@@ -587,7 +495,7 @@ export function RerollLab() {
           or better averages 3.81 attempts and about 9,640 silver.
         </p>
       </section>
-      <section className="rounded-lg border border-line bg-panel p-4">
+      <section className="rounded-lg border border-line bg-panel p-5">
         <p className="text-sm text-muted">Expected silver to {REROLL_NAMES[goal]}</p>
         <p className="font-sans text-4xl font-semibold tabular-nums tracking-tight text-brass">{silver(plan.silver * count)}</p>
         <p className="mt-2 text-sm text-muted">

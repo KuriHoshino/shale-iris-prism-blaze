@@ -1,4 +1,5 @@
-import type { ReactNode } from "react"
+import { useEffect, useState, type ReactNode } from "react"
+import { marketId, matName } from "@/lib/forge/lookup"
 
 export const fieldClass =
   "h-11 w-full rounded-lg border border-line bg-ink px-3 text-base text-parchment outline-none focus-visible:border-brass"
@@ -19,6 +20,58 @@ export function silver(value: number | null | undefined): string {
 
 export function exact(value: number): string {
   return value.toLocaleString("en-US", { maximumFractionDigits: 2 })
+}
+
+/** Official item picture. The plain URL is the one Albion Free Market already has cached. */
+export function itemIconUrl(id: string, enchant = 0, quality = 1): string {
+  const unique = marketId(id, enchant)
+  const base = `https://render.albiononline.com/v1/item/${encodeURIComponent(unique)}.png`
+  if (quality > 1 && quality <= 5) return `${base}?quality=${quality}`
+  return base
+}
+
+export function itemMark(id: string, enchant = 0): string {
+  const unique = marketId(id, enchant)
+  const tier = unique.match(/^T(\d+)/)?.[1]
+  const level = unique.match(/@(\d)/)?.[1] ?? "0"
+  return tier ? `${tier}.${level}` : ""
+}
+
+export function ItemIcon({
+  id,
+  enchant = 0,
+  quality = 1,
+  size = 40,
+}: {
+  id: string
+  enchant?: number
+  quality?: number
+  size?: number
+}) {
+  const frame = quality > 1 && quality <= 5 ? quality : 1
+  const sources = [
+    ...new Set(
+      [itemIconUrl(id, enchant, frame), itemIconUrl(id, 0, frame), matName(id) ? itemIconUrl(matName(id), 0, frame) : ""].filter(Boolean),
+    ),
+  ]
+  const [step, setStep] = useState(0)
+  useEffect(() => {
+    setStep(0)
+  }, [id, enchant, quality])
+  if (step >= sources.length) return null
+  return (
+    <img
+      src={sources[step]}
+      alt=""
+      width={size}
+      height={size}
+      decoding="async"
+      loading={size >= 48 ? "eager" : "lazy"}
+      className="shrink-0 rounded-md bg-[#1a1d27] object-contain"
+      style={{ width: size, height: size }}
+      onError={() => setStep((current) => current + 1)}
+    />
+  )
 }
 
 /** How old a market timestamp is, such as "2h ago". */

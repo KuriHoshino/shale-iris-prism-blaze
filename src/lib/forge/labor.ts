@@ -1,3 +1,5 @@
+import lootTable from "./data/labor-loot.json"
+
 export type LaborJob = {
   id: string
   name: string
@@ -5,6 +7,7 @@ export type LaborJob = {
   returns: string
   fame: Record<number, number>
   loot: Record<number, number>
+  kind: string
 }
 
 const GATHER_FAME: Record<number, number> = { 2: 450, 3: 900, 4: 1800, 5: 3600, 6: 7200, 7: 14400, 8: 28800 }
@@ -17,17 +20,17 @@ const MERC_FAME: Record<number, number> = { 2: 1412, 3: 2171, 4: 3264, 5: 4368, 
 const MERC_SILVER: Record<number, number> = { 2: 371, 3: 660, 4: 1123, 5: 1746, 6: 2690, 7: 4202, 8: 6584 }
 
 export const LABOR_JOBS: LaborJob[] = [
-  { id: "wood", name: "Lumberjack", family: "Gathering", returns: "wood", fame: GATHER_FAME, loot: GATHER_LOOT },
-  { id: "ore", name: "Prospector", family: "Gathering", returns: "ore", fame: GATHER_FAME, loot: GATHER_LOOT },
-  { id: "stone", name: "Stonecutter", family: "Gathering", returns: "stone", fame: GATHER_FAME, loot: GATHER_LOOT },
-  { id: "hide", name: "Gamekeeper", family: "Gathering", returns: "hide", fame: GATHER_FAME, loot: GATHER_LOOT },
-  { id: "fiber", name: "Cropper", family: "Gathering", returns: "fiber", fame: GATHER_FAME, loot: GATHER_LOOT },
-  { id: "fish", name: "Fisherman", family: "Gathering", returns: "fish", fame: FISH_FAME, loot: FISH_LOOT },
-  { id: "warrior", name: "Blacksmith", family: "Crafting", returns: "warrior materials", fame: CRAFT_FAME, loot: CRAFT_LOOT },
-  { id: "mage", name: "Imbuer", family: "Crafting", returns: "mage materials", fame: CRAFT_FAME, loot: CRAFT_LOOT },
-  { id: "hunter", name: "Fletcher", family: "Crafting", returns: "hunter materials", fame: CRAFT_FAME, loot: CRAFT_LOOT },
-  { id: "tool", name: "Tinker", family: "Crafting", returns: "tool materials", fame: CRAFT_FAME, loot: CRAFT_LOOT },
-  { id: "mercenary", name: "Mercenary", family: "Mercenary", returns: "silver", fame: MERC_FAME, loot: MERC_SILVER },
+  { id: "wood", name: "Lumberjack", family: "Gathering", returns: "wood", fame: GATHER_FAME, loot: GATHER_LOOT, kind: "WOOD" },
+  { id: "ore", name: "Prospector", family: "Gathering", returns: "ore", fame: GATHER_FAME, loot: GATHER_LOOT, kind: "ORE" },
+  { id: "stone", name: "Stonecutter", family: "Gathering", returns: "stone", fame: GATHER_FAME, loot: GATHER_LOOT, kind: "STONE" },
+  { id: "hide", name: "Gamekeeper", family: "Gathering", returns: "hide", fame: GATHER_FAME, loot: GATHER_LOOT, kind: "HIDE" },
+  { id: "fiber", name: "Cropper", family: "Gathering", returns: "fiber", fame: GATHER_FAME, loot: GATHER_LOOT, kind: "FIBER" },
+  { id: "fish", name: "Fisherman", family: "Gathering", returns: "fish", fame: FISH_FAME, loot: FISH_LOOT, kind: "FISHING" },
+  { id: "warrior", name: "Blacksmith", family: "Crafting", returns: "warrior materials", fame: CRAFT_FAME, loot: CRAFT_LOOT, kind: "WARRIOR" },
+  { id: "mage", name: "Imbuer", family: "Crafting", returns: "mage materials", fame: CRAFT_FAME, loot: CRAFT_LOOT, kind: "MAGE" },
+  { id: "hunter", name: "Fletcher", family: "Crafting", returns: "hunter materials", fame: CRAFT_FAME, loot: CRAFT_LOOT, kind: "HUNTER" },
+  { id: "tool", name: "Tinker", family: "Crafting", returns: "tool materials", fame: CRAFT_FAME, loot: CRAFT_LOOT, kind: "TOOLMAKER" },
+  { id: "mercenary", name: "Mercenary", family: "Mercenary", returns: "silver", fame: MERC_FAME, loot: MERC_SILVER, kind: "" },
 ]
 
 /** Building plots are cumulative. The guild hall uses one of them. Small plots can hold a house. */
@@ -72,11 +75,32 @@ export const ENCHANT = [
   { label: ".3", weight: 1 },
 ]
 
-/** Bed and table of the laborer tier are 100%. Trophy happiness stacks on that, and only 100 points count. */
+/** Yield when this journal tier is sent from this house tier. A higher house caps at 150%. */
+const HOUSE_YIELD: Record<number, Record<number, number>> = {
+  2: { 0: 1.025, 1: 0.6833, 2: 0.5125 },
+  3: { [-1]: 1.5, 0: 1.05, 1: 0.775, 2: 0.62 },
+  4: { [-1]: 1.5, 0: 1.075, 1: 0.83, 2: 0.6917 },
+  5: { [-1]: 1.5, 0: 1.1, 1: 0.8667, 2: 0.7429 },
+  6: { [-1]: 1.5, 0: 1.125, 1: 0.8929, 2: 0.7813 },
+  7: { [-3]: 1.5, [-2]: 1.5, [-1]: 1.5, 0: 1.15, 1: 0.9125 },
+  8: { [-4]: 1.5, [-3]: 1.5, [-2]: 1.5, [-1]: 1.5, 0: 1.2 },
+}
+
+export function houseYield(house: number, journal: number) {
+  return HOUSE_YIELD[house]?.[journal - house] ?? 0
+}
+
+export type LootLine = { id: string; weight: number }
+
+export function laborLoot(kind: string, tier: number): { amount: number; items: LootLine[] } | null {
+  const table = lootTable as Record<string, Record<string, { amount: number; items: LootLine[] }>>
+  return table[kind]?.[String(tier)] ?? null
+}
+
+/** Kept for older callers. Trophy happiness is not part of the return amount. */
 export function yieldRate(laborTier: number, trophy: number) {
   const tier = Math.min(8, Math.max(2, Math.floor(laborTier) || 2))
-  const bonus = Math.min(100, Math.max(0, trophy))
-  return Math.min(1.5, (tier * 100 + bonus) / (tier * 100))
+  return houseYield(tier, tier) * (1 + Math.min(100, Math.max(0, trophy)) / (tier * 100))
 }
 
 export function scoreHouses(
@@ -90,9 +114,9 @@ export function scoreHouses(
     const houses = Math.max(0, Math.floor(counts[tier] ?? 0))
     if (!houses) continue
     const labor = Math.min(tier, Math.max(2, Math.floor(journals[tier] ?? tier)))
-    const rate = yieldRate(labor, happy[tier] ?? 0)
+    const rate = houseYield(tier, labor)
     const people = houses * houseSlots(tier)
-    const base = job.loot[labor]
+    const base = job.loot[labor] ?? 0
     rows.push({
       tier,
       houses,
@@ -102,6 +126,7 @@ export function scoreHouses(
       rate,
       base,
       amount: base * rate * people,
+      happy: happy[tier] ?? 0,
     })
   }
   return {

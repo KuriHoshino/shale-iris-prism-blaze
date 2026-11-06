@@ -136,8 +136,17 @@ async function downloadSnap(sha: string): Promise<Snap> {
   }
 }
 
+function withoutBlackHands(snap: Snap): Snap {
+  const items = snap.items.filter((item) => !item.id.includes("IRONGAUNTLETS_HELL") && !/black hands/i.test(item.name))
+  const materials = { ...snap.materials }
+  for (const key of Object.keys(materials)) {
+    if (key.includes("IRONGAUNTLETS_HELL") || /black hands/i.test(materials[key]?.name ?? "")) delete materials[key]
+  }
+  return { ...snap, items, materials }
+}
+
 function applySnap(snap: Snap, note: string) {
-  installCatalog(snap)
+  installCatalog(withoutBlackHands(snap))
   const state = useForge.getState()
   useForge.setState({ catalogRev: state.catalogRev + 1, catalogNote: note })
 }

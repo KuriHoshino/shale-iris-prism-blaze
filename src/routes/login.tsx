@@ -5,10 +5,12 @@ export const Route = createFileRoute("/login")({ component: Login })
 
 function Login() {
   return (
-    <main className="grid min-h-screen place-items-center bg-transparent p-6 text-parchment">
-      <div className="w-full max-w-sm space-y-3">
-        <h1 className="font-display text-3xl">Sign in</h1>
-        <p className="text-sm text-muted">Sign in with Google to keep saved crafts on your account.</p>
+    <main className="page grid min-h-screen content-center py-16 text-parchment">
+      <div className="w-full max-w-sm">
+        <p className="eyebrow">Hearthforge</p>
+        <h1 className="page-title">Sign in</h1>
+        <p className="lead">Sign in with Google to keep saved crafts on your account.</p>
+        <div className="mt-8 grid gap-3">
         {authEnabled ? (
           GROK_PROVIDERS.map((provider) => (
             <button
@@ -23,6 +25,7 @@ function Login() {
         ) : (
           <p className="text-sm text-muted">Sign-in is turned off.</p>
         )}
+        </div>
       </div>
     </main>
   )

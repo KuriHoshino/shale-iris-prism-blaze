@@ -1,6 +1,7 @@
 import { Check } from "lucide-react"
 import { useEffect, useMemo, useRef, useState } from "react"
 import { fetchHourlyPrices, loadHourlyPrices, type HourSeries } from "@/lib/forge/prices"
+import { marketApiBase } from "@/lib/forge/marketBase"
 import { MARKETS, type ServerId } from "@/lib/forge/rules"
 import { useForge, type PriceBook } from "@/lib/forge/store"
 import { silver, exact, priceAge } from "./fields"
@@ -56,6 +57,7 @@ export function HourlyChart({
   cities?: readonly string[]
 }) {
   const [series, setSeries] = useState<HourSeries[]>([])
+  const [bandSold, setBandSold] = useState<number | null>(null)
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
   const [at, setAt] = useState<number | null>(null)
@@ -69,15 +71,34 @@ export function HourlyChart({
     const load = () => {
       setLoading(true)
       const request = { server, itemId, locations: [...MARKETS], quality }
+      const marketBase = marketApiBase()
       const pending =
         import.meta.env.VITE_PAGES === "1" ? loadHourlyPrices(request) : fetchHourlyPrices({ data: request })
-      void pending
-        .then((result) => {
+      if (!marketBase) throw new Error("missing market base")
+      const band = Promise.all(
+        [1, 2, 3].map((level) => {
+          const history = { server, itemId, locations: ["Black Market" as const], quality: level }
+          const read = import.meta.env.VITE_PAGES === "1" ? loadHourlyPrices(history) : fetchHourlyPrices({ data: history })
+          return read.catch(() => ({ series: [] as HourSeries[], fetchedAt: 0 }))
+        }),
+      )
+      void Promise.all([pending, band])
+        .then(([result, histories]) => {
           if (cancel) return
           filled.current = result.series.length > 0
           setSeries(result.series)
           setAt(result.fetchedAt)
           setError("")
+          let sold = 0
+          let any = false
+          for (const history of histories) {
+            const points = history.series.find((entry) => entry.city === "Black Market")?.points ?? []
+            const day = soldInDay(points)
+            if (day == null) continue
+            any = true
+            sold += day
+          }
+          setBandSold(any ? sold : null)
         })
         .catch((err: unknown) => {
           if (cancel || filled.current) return
@@ -122,6 +143,7 @@ export function HourlyChart({
           usedCity={usedCity}
           book={book}
           series={series}
+          bandSold={bandSold}
           lastByCity={lastByCity}
           onUse={onUse}
           cities={cities}
@@ -138,6 +160,7 @@ function CityGrid({
   usedCity,
   book,
   series,
+  bandSold,
   lastByCity,
   onUse,
   cities,
@@ -148,6 +171,7 @@ function CityGrid({
   usedCity: string
   book: PriceBook
   series: HourSeries[]
+  bandSold: number | null
   lastByCity: Map<string, { price: number; count: number; time: string }>
   onUse: (city: string, price: number | null) => void
   cities: readonly string[]
@@ -181,7 +205,8 @@ function CityGrid({
     <ul className="mt-3 grid grid-cols-2 gap-2">
       {rows.map((row) => {
         const last = lastByCity.get(row.city)
-        const sold = soldInDay(series.find((entry) => entry.city === row.city)?.points ?? [])
+        const own = soldInDay(series.find((entry) => entry.city === row.city)?.points ?? [])
+        const sold = row.city === "Black Market" ? bandSold : own
         const using = usedCity === row.city
         const cheap = split && row.sell === lowestSell
         const rich = split && row.sell === highestSell
@@ -217,7 +242,7 @@ function CityGrid({
                 {row.buy != null ? `buy ${silver(row.buy)}${row.buyAge ? ` · ${row.buyAge}` : ""}` : "buy —"}
               </p>
               <p className="tabular-nums text-muted">
-                {sold == null ? "No sales recorded" : `${exact(sold)} sold / day`}
+                {sold == null ? "No sales recorded" : `${exact(sold)} sold / day${row.city === "Black Market" ? " · N/G/O" : ""}`}
                 {row.price == null && last ? ` · last ${silver(last.price)}` : ""}
               </p>
             </div>

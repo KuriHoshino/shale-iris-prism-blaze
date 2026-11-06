@@ -2,7 +2,7 @@ import { useMemo, useState } from "react"
 import { ARMOR_LINE, FORGE_STATIONS, GATHER_LINE, GROUP_LABEL, MOUNT_LINE, OFFHAND_LINE, REFINE_LINE, TOOL_LINE, WEAPON_LINE, gearLineLabel } from "@/lib/forge/rules"
 import { searchItems } from "@/lib/forge/lookup"
 import { useForge } from "@/lib/forge/store"
-import { fieldClass } from "./fields"
+import { ItemIcon, fieldClass } from "./fields"
 
 const GROUPS = ["all", "refine", "weapon", "armor", "offhand", "mount", "accessory", "tool", "gather", "food", "potion"]
 const TIERS = [2, 3, 4, 5, 6, 7, 8]
@@ -206,13 +206,12 @@ export function ItemPicker({
                     <button
                       type="button"
                       onClick={() => onPick(item.id)}
-                      className="flex w-full items-baseline justify-between gap-3 border-b border-line px-3 py-3 text-left last:border-b-0 hover:bg-panel-2"
+                      className="flex w-full items-center gap-3 border-b border-line px-3 py-2 text-left last:border-b-0 hover:bg-panel-2"
                     >
-                      <span className="text-parchment">
-                        {item.name}
-                        <span className="mt-0.5 block text-xs text-muted">
-                          T{item.tier} · {item.station}
-                        </span>
+                      <ItemIcon id={item.id} size={44} />
+                      <span className="min-w-0 flex-1 text-parchment">
+                        {item.name} <span className="text-muted">[{item.tier}.0]</span>
+                        <span className="mt-0.5 block text-xs text-muted">{item.station}</span>
                       </span>
                       <span className="shrink-0 text-xs text-muted">{gearLineLabel(item) ?? GROUP_LABEL[item.group]}</span>
                     </button>

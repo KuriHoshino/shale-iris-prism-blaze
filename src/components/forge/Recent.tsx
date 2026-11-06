@@ -117,8 +117,8 @@ export function RecentLab() {
   }
 
   return (
-    <div className="flex flex-col gap-4">
-      <section className="rounded-lg border border-line bg-panel p-4">
+    <div className="flex flex-col gap-section">
+      <section className="rounded-lg border border-line bg-panel p-5">
         <h2 className="font-display text-2xl">Recent crafts</h2>
         <p className="mt-2 max-w-xl text-sm text-muted">
           The last 10 crafts stay on this browser after a reload. Sign in with Google and Save keeps the craft, and this list, on your account.
@@ -126,7 +126,7 @@ export function RecentLab() {
         {note ? <p className="mt-3 text-sm text-muted">{note}</p> : null}
       </section>
 
-      <section className="rounded-lg border border-line bg-panel p-4">
+      <section className="rounded-lg border border-line bg-panel p-5">
         <h3 className="text-sm font-semibold tracking-wide text-brass uppercase">Saved</h3>
         {user && groups.length ? (
           <ul className="mt-3 flex flex-col">
@@ -178,7 +178,7 @@ export function RecentLab() {
         </SignedIn>
       </section>
 
-      <section className="rounded-lg border border-line bg-panel p-4">
+      <section className="rounded-lg border border-line bg-panel p-5">
         <h3 className="text-sm font-semibold tracking-wide text-brass uppercase">Last 10</h3>
         {loose.length === 0 ? (
           <p className="mt-3 text-sm text-muted">Add a craft and it shows up here.</p>

@@ -1,0 +1,11 @@
+[
+  {
+    "item_id": "T4_BAG",
+    "city": "Martlock",
+    "quality": 1,
+    "sell_price_min": 5553,
+    "buy_price_max": 2515,
+    "sell_price_min_date": "2026-01-01T00:00:00",
+    "buy_price_max_date": "2026-01-01T00:00:00"
+  }
+]

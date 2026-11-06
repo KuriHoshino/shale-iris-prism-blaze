@@ -2,16 +2,16 @@ import { useEffect, useMemo, useState } from "react"
 import { Plus, RefreshCw, Search } from "lucide-react"
 import { items, type CraftItem } from "@/lib/forge/catalog"
 import { enchantStones, liveId, marketId } from "@/lib/forge/lookup"
+import { marketApiBase } from "@/lib/forge/marketBase"
 import { fetchMarketPrices, loadMarketPrices } from "@/lib/forge/prices"
 import { MARKETS, TAX_PREMIUM, TAX_STANDARD, WEAPON_LINE, gearLine } from "@/lib/forge/rules"
 import { useForge, type PriceBook } from "@/lib/forge/store"
 import { stackBuy, stackSell } from "@/lib/forge/formulas"
-import { silver, pct, orderAge } from "./fields"
+import { ItemIcon, itemMark, silver, pct, orderAge } from "./fields"
 
 const TIERS = [4, 5, 6, 7, 8]
 const ENCHANTS = [0, 1, 2, 3, 4]
 const SAVE_KEY = "hearthforge-flips"
-const BUY_CITIES = MARKETS.filter((city) => city !== "Black Market")
 
 const SECTIONS: { id: string; label: string; lines: { id: string; label: string }[] }[] = [
   {
@@ -103,8 +103,6 @@ export function FlipLab() {
   const server = useForge((s) => s.server)
   const premium = useForge((s) => s.premium)
   const patch = useForge((s) => s.patch)
-  const [buyCity, setBuyCity] = useState("Martlock")
-  const [sellCity, setSellCity] = useState("Black Market")
   const [picks, setPicks] = useState<string[]>(["8.0"])
   const [quality, setQuality] = useState(1)
   const [dealPath, setDealPath] = useState<"listed" | "upgrade">("listed")
@@ -131,7 +129,7 @@ export function FlipLab() {
   }, [saved])
 
   useEffect(() => {
-    if (!picks.length || buyCity === sellCity) return
+    if (!picks.length) return
     let cancel = false
     const timer = window.setTimeout(() => {
       void (async () => {
@@ -153,7 +151,7 @@ export function FlipLab() {
         }
         const idList = [...ids]
         if (!idList.length) return
-        const places = MARKETS.filter((city) => city === buyCity || city === sellCity)
+        const places = [...MARKETS]
         setLoading(true)
         setError("")
         try {
@@ -166,7 +164,9 @@ export function FlipLab() {
               locations: places,
               qualities: [quality],
             }
+            const marketBase = marketApiBase()
             const result = import.meta.env.VITE_PAGES === "1" ? await loadMarketPrices(request) : await fetchMarketPrices({ data: request })
+            if (!marketBase) throw new Error("missing market base")
             Object.assign(next, result.quotes)
             got += Object.keys(result.quotes).length
             if (cancel) return
@@ -188,11 +188,11 @@ export function FlipLab() {
       cancel = true
       window.clearTimeout(timer)
     }
-  }, [server, quality, buyCity, sellCity, pickSet, tiers, picks.length, pulse])
+  }, [server, quality, pickSet, tiers, picks.length, pulse])
 
   useEffect(() => {
     setPage(0)
-  }, [rank, quality, buyCity, sellCity, picks])
+  }, [rank, quality, picks])
 
   useEffect(() => {
     const timer = window.setInterval(() => setNow(Date.now()), 1000)
@@ -209,8 +209,12 @@ export function FlipLab() {
   function hasPrice(item: CraftItem, enchant: number) {
     if (!book || !pickSet.has(pickKey(item.tier, enchant))) return false
     const id = marketId(item.id, enchant)
-    const quote = book[id]?.[buyCity]?.[String(quality)] ?? book[id]?.[sellCity]?.[String(quality)] ?? book[liveId(id)]?.[buyCity]?.[String(quality)] ?? book[liveId(id)]?.[sellCity]?.[String(quality)]
-    return Boolean(quote && ((quote.sell || 0) > 0 || (quote.buy || 0) > 0))
+    const quotes = book[id] ?? book[liveId(id)]
+    if (!quotes) return false
+    return Object.values(quotes).some((cities) => {
+      const quote = cities[String(quality)]
+      return Boolean(quote && ((quote.sell || 0) > 0 || (quote.buy || 0) > 0))
+    })
   }
 
   function pricedEnchants(item: CraftItem) {
@@ -260,16 +264,16 @@ export function FlipLab() {
   function saveRoute() {
     const next: Saved = {
       id: `${Date.now()}`,
-      name: `${buyCity} → ${sellCity}`,
-      buy: buyCity,
-      sell: sellCity,
+      name: "All cities",
+      buy: "all",
+      sell: "all",
       picks: [...picks],
     }
     setSaved((current) => [next, ...current].slice(0, 12))
   }
 
   function flipDeal(item: CraftItem, enchant: number) {
-    if (!book || buyCity === sellCity) return null
+    if (!book) return null
     const upgrade = dealPath === "upgrade" && enchant > fromEnchant && enchant < 4
     const stones = upgrade
       ? enchantStones(item, enchant).filter((stone) => {
@@ -279,32 +283,62 @@ export function FlipLab() {
       : []
     const marketOnly = !upgrade || stones.length === 0
     const buyId = marketOnly ? marketId(item.id, enchant) : marketId(item.id, fromEnchant)
-    const buyPrice = order(book, buyId, buyCity, quality, "sell")
-    const sellPrice = order(book, marketId(item.id, enchant), sellCity, quality, "buy")
-    if (buyPrice == null || sellPrice == null) return null
-    let extra = 0
-    for (const stone of marketOnly ? [] : stones) {
-      const unit = order(book, stone.id, buyCity, 1, "sell")
-      if (unit == null) return null
-      extra += stackBuy(unit, stone.qty, "instant").cost
+    const sellId = marketId(item.id, enchant)
+    let best: {
+      buy: number
+      sell: number
+      extra: number
+      investment: number
+      fee: number
+      profit: number
+      roi: number
+      age: string
+      from: number | null
+      buyCity: string
+      sellCity: string
+    } | null = null
+    for (const buyCity of MARKETS) {
+      const buyPrice = order(book, buyId, buyCity, quality, "sell")
+      if (buyPrice == null) continue
+      let extra = 0
+      let missingStone = false
+      for (const stone of marketOnly ? [] : stones) {
+        const unit = order(book, stone.id, buyCity, 1, "sell")
+        if (unit == null) {
+          missingStone = true
+          break
+        }
+        extra += stackBuy(unit, stone.qty, "instant").cost
+      }
+      if (missingStone) continue
+      for (const sellCity of MARKETS) {
+        if (sellCity === buyCity) continue
+        const sellPrice = order(book, sellId, sellCity, quality, "buy")
+        if (sellPrice == null) continue
+        const bought = stackBuy(buyPrice, 1, "instant")
+        const sold = stackSell(sellPrice, 1, "instant", premium)
+        const investment = bought.cost + extra
+        const fee = sold.tax + sold.setup
+        const profit = sold.net - investment
+        const roi = investment > 0 ? profit / investment : 0
+        const stamp = book[buyId]?.[buyCity]?.[String(quality)]?.sellDate || book[liveId(buyId)]?.[buyCity]?.[String(quality)]?.sellDate
+        const next = {
+          buy: buyPrice,
+          sell: sellPrice,
+          extra,
+          investment,
+          fee,
+          profit,
+          roi,
+          age: orderAge(stamp),
+          from: marketOnly ? null : fromEnchant,
+          buyCity,
+          sellCity,
+        }
+        if (!best || (rank === "roi" ? next.roi > best.roi : next.profit > best.profit)) best = next
+      }
     }
-    const bought = stackBuy(buyPrice, 1, "instant")
-    const sold = stackSell(sellPrice, 1, "instant", premium)
-    const investment = bought.cost + extra
-    const fee = sold.tax + sold.setup
-    const profit = sold.net - investment
-    const stamp = book[buyId]?.[buyCity]?.[String(quality)]?.sellDate || book[liveId(buyId)]?.[buyCity]?.[String(quality)]?.sellDate
-    return {
-      buy: buyPrice,
-      sell: sellPrice,
-      extra,
-      investment,
-      fee,
-      profit,
-      roi: investment > 0 ? profit / investment : 0,
-      age: orderAge(stamp),
-      from: marketOnly ? null : fromEnchant,
-    }
+    return best
   }
 
   const field = "h-9 w-full rounded-md border border-white/10 bg-[#1a1d27] px-2 text-sm text-parchment outline-none"
@@ -341,7 +375,7 @@ export function FlipLab() {
   }
 
   return (
-    <div className="flex flex-col rounded-lg border border-line bg-[#0c0e14]">
+    <div className="flex flex-col overflow-hidden rounded-lg border border-line bg-[#0c0e14]">
       <div className="border-b border-line bg-[#101218] px-3 py-3">
         <div className="flex flex-wrap items-center gap-2">
           <p className="mr-2 text-xs text-muted">Best flip</p>
@@ -383,24 +417,7 @@ export function FlipLab() {
       <aside className="flex w-full shrink-0 flex-col border-b border-line bg-[#101218] lg:w-64 lg:border-r lg:border-b-0">
         <div className="border-b border-line px-3 py-3">
           <p className="text-[11px] font-semibold tracking-wide text-muted uppercase">Flip route</p>
-          <div className="mt-3 grid grid-cols-2 gap-2">
-            <label className="text-[11px] text-muted">
-              Buy city
-              <select className={field + " mt-1"} value={buyCity} onChange={(event) => setBuyCity(event.target.value)}>
-                {BUY_CITIES.map((city) => (
-                  <option key={city} value={city}>{city}</option>
-                ))}
-              </select>
-            </label>
-            <label className="text-[11px] text-muted">
-              Sell city
-              <select className={field + " mt-1"} value={sellCity} onChange={(event) => setSellCity(event.target.value)}>
-                {MARKETS.map((city) => (
-                  <option key={city} value={city}>{city}</option>
-                ))}
-              </select>
-            </label>
-          </div>
+          <p className="mt-2 text-[12px] text-muted">All cities are compared. Each row shows the city to buy in.</p>
         </div>
         <div className="border-b border-line px-3 py-3">
           <div className="flex items-center justify-between">
@@ -501,11 +518,7 @@ export function FlipLab() {
                 <li key={config.id}>
                   <button
                     type="button"
-                    onClick={() => {
-                      setBuyCity(config.buy)
-                      setSellCity(config.sell)
-                      setPicks(config.picks)
-                    }}
+                    onClick={() => setPicks(config.picks)}
                     className="w-full rounded-md px-2 py-1.5 text-left text-xs text-parchment hover:bg-white/5"
                   >
                     {config.name}
@@ -546,7 +559,6 @@ export function FlipLab() {
           </button>
         </div>
         {error ? <p className="px-4 py-2 text-sm text-ember">{error}</p> : null}
-        {buyCity === sellCity ? <p className="px-4 py-2 text-sm text-muted">Buy and sell need different cities.</p> : null}
         <ul className="flex flex-col gap-2 p-3 md:hidden">
           {view.map((row) => {
             const key = `${row.id}|${row.enchant}`
@@ -563,9 +575,14 @@ export function FlipLab() {
                     aria-label={`Pick ${row.name}`}
                     className="mt-1 size-5 accent-violet-400"
                   />
-                  <div className="min-w-0 flex-1">
-                    <p className="font-medium text-parchment">{row.name}</p>
+                  <div className="flex min-w-0 flex-1 items-center gap-2">
+                    <ItemIcon id={row.id} enchant={row.enchant} quality={quality} size={40} />
+                    <div className="min-w-0">
+                    <p className="font-medium text-parchment">
+                      {row.name} <span className="text-muted">[{itemMark(row.id, row.enchant)}]</span>
+                    </p>
                     <p className="text-xs text-muted">{pathLabel(row.tier, row.enchant, row.from)} · {row.age || "no age"}</p>
+                    </div>
                   </div>
                   <p className={"text-right text-sm font-semibold tabular-nums " + (money.profit >= 0 ? "text-sage" : "text-ember")}>
                     {silver(money.profit)}
@@ -573,8 +590,8 @@ export function FlipLab() {
                   </p>
                 </div>
                 <dl className="mt-3 grid grid-cols-2 gap-2 text-xs">
-                  <div><dt className="text-muted">Buy</dt><dd className="tabular-nums">{silver(row.buy)}</dd></div>
-                  <div><dt className="text-muted">Sell</dt><dd className="tabular-nums">{silver(row.sell)}</dd></div>
+                  <div><dt className="text-muted">Buy in {row.buyCity}</dt><dd className="tabular-nums">{silver(row.buy)}</dd></div>
+                  <div><dt className="text-muted">Sell in {row.sellCity}</dt><dd className="tabular-nums">{silver(row.sell)}</dd></div>
                   <div><dt className="text-muted">Investment</dt><dd className="tabular-nums">{silver(money.investment)}</dd></div>
                   <div><dt className="text-muted">Tax {pct(taxRate)}</dt><dd className="tabular-nums">{silver(money.tax)}</dd></div>
                 </dl>
@@ -598,8 +615,8 @@ export function FlipLab() {
               <tr className="border-b border-white/10">
                 <th className="w-8 px-3 py-2" />
                 <th className="px-2 py-2 font-medium">Item / tier / quality</th>
-                <th className="px-2 py-2 font-medium">Buy</th>
-                <th className="px-2 py-2 font-medium">Sell</th>
+                <th className="px-2 py-2 font-medium">Buy in</th>
+                <th className="px-2 py-2 font-medium">Sell in</th>
                 <th className="px-2 py-2 font-medium">Investment</th>
                 <th className="px-2 py-2 font-medium">Tax {pct(taxRate)}</th>
                 <th className="px-2 py-2 font-medium">Profit</th>
@@ -627,11 +644,24 @@ export function FlipLab() {
                       />
                     </td>
                     <td className="px-2 py-3">
-                      <p className="font-medium text-parchment">{row.name}</p>
-                      <p className="text-xs text-muted">{pathLabel(row.tier, row.enchant, row.from)}</p>
+                      <div className="flex items-center gap-2">
+                        <ItemIcon id={row.id} enchant={row.enchant} quality={quality} size={40} />
+                        <div>
+                          <p className="font-medium text-parchment">
+                            {row.name} <span className="text-muted">[{itemMark(row.id, row.enchant)}]</span>
+                          </p>
+                          <p className="text-xs text-muted">{pathLabel(row.tier, row.enchant, row.from)}</p>
+                        </div>
+                      </div>
                     </td>
-                    <td className="px-2 py-3 tabular-nums">{silver(row.buy)}</td>
-                    <td className="px-2 py-3 tabular-nums">{silver(row.sell)}</td>
+                    <td className="px-2 py-3 tabular-nums">
+                      {silver(row.buy)}
+                      <span className="block text-xs text-brass">{row.buyCity}</span>
+                    </td>
+                    <td className="px-2 py-3 tabular-nums">
+                      {silver(row.sell)}
+                      <span className="block text-xs text-muted">{row.sellCity}</span>
+                    </td>
                     <td className="px-2 py-3 tabular-nums">{silver(money.investment)}</td>
                     <td className="px-2 py-3 tabular-nums text-muted">{silver(money.tax)}</td>
                     <td className={"px-2 py-3 font-semibold tabular-nums " + (money.profit >= 0 ? "text-sage" : "text-ember")}>{silver(money.profit)}</td>

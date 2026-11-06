@@ -1,9 +1,8 @@
 import { createServerFn } from "@tanstack/react-start"
 import { z } from "zod"
 import { liveId } from "./lookup"
+import { marketStatsUrl } from "./marketBase"
 import { MARKETS } from "./rules"
-
-const HOST = "https://east.albion-online-data.com"
 const AFM_QUERY = "east"
 
 const Input = z.object({
@@ -58,6 +57,8 @@ function silverCell(cell: string) {
 }
 
 function parseAfm(html: string) {
+  const fromState = parseAfmState(html)
+  if (fromState.length) return fromState
   const start = html.indexOf('class="summary-table"')
   if (start < 0) return []
   const end = html.indexOf("</table>", start)
@@ -70,6 +71,29 @@ function parseAfm(html: string) {
     const cells = [...row.matchAll(/class="numeric">([\s\S]*?)<\/td>/g)]
     if (cells.length < 2) continue
     rows.push({ city, sell: silverCell(cells[0][1]), buy: silverCell(cells[1][1]) })
+  }
+  return rows
+}
+
+function parseAfmState(html: string) {
+  const match = html.match(/<script id="ng-state" type="application\/json">([\s\S]*?)<\/script>/)
+  if (!match) return []
+  let data: Record<string, unknown>
+  try {
+    data = JSON.parse(match[1]) as Record<string, unknown>
+  } catch {
+    return []
+  }
+  const rows: { city: (typeof MARKETS)[number]; sell: number; buy: number }[] = []
+  for (const [key, value] of Object.entries(data)) {
+    if (!key.startsWith("latest-prices:") || !Array.isArray(value)) continue
+    for (const row of value) {
+      if (!row || typeof row !== "object") continue
+      const item = row as { city?: string; sell_price_min?: number; buy_price_max?: number }
+      const city = item.city && (MARKETS as readonly string[]).includes(item.city) ? (item.city as (typeof MARKETS)[number]) : undefined
+      if (!city) continue
+      rows.push({ city, sell: item.sell_price_min || 0, buy: item.buy_price_max || 0 })
+    }
   }
   return rows
 }
@@ -98,7 +122,7 @@ function bestLevel(levels: BookLevel[] | undefined, side: "sell" | "buy") {
 async function pullJson(url: string): Promise<unknown> {
   for (let attempt = 0; attempt < 2; attempt += 1) {
     const res = await fetch(url, {
-      headers: { Accept: "application/json" },
+      headers: { Accept: "application/json", "Accept-Encoding": "gzip, deflate" },
       signal: AbortSignal.timeout(12000),
     }).catch(() => null)
     if (!res) return []
@@ -112,22 +136,21 @@ async function pullJson(url: string): Promise<unknown> {
   return []
 }
 
-async function pullPrices(host: string, ids: string[], locations: string[], qualities: number[]) {
+async function pullPrices(ids: string[], locations: string[], qualities: number[]) {
   const loc = locations.map((name) => encodeURIComponent(name)).join(",")
-  const url = `${host}/api/v2/stats/prices/${ids.join(",")}.json?locations=${loc}&qualities=${qualities.join(",")}`
+  const url = marketStatsUrl("prices", ids.join(","), `locations=${loc}&qualities=${qualities.join(",")}`)
   return (await pullJson(url)) as PriceRow[]
 }
 
-async function pullBook(host: string, ids: string[], locations: string[], qualities: number[]) {
+async function pullBook(ids: string[], locations: string[], qualities: number[]) {
   const loc = locations.map((name) => encodeURIComponent(name)).join(",")
-  const url = `${host}/api/v2/stats/orderbook/${ids.join(",")}.json?locations=${loc}&qualities=${qualities.join(",")}`
+  const url = marketStatsUrl("orders", ids.join(","), `locations=${loc}&qualities=${qualities.join(",")}`)
   return (await pullJson(url)) as BookRow[]
 }
 
 export async function loadMarketPrices(data: z.infer<typeof Input>) {
   const ids = [...new Set(data.itemIds)]
   const apiIds = ids.map(liveId)
-  const host = HOST
   const quotes: Record<string, Record<string, Record<string, PriceQuote>>> = {}
   for (let i = 0; i < apiIds.length; i += 40) {
     const chunk = apiIds.slice(i, i + 40)
@@ -136,13 +159,13 @@ export async function loadMarketPrices(data: z.infer<typeof Input>) {
     let book: BookRow[] = []
     let listed: PriceRow[] = []
     try {
-      listed = (await pullPrices(host, chunk, locations, qualities)) as PriceRow[]
+      listed = (await pullPrices(chunk, locations, qualities)) as PriceRow[]
       if (!Array.isArray(listed)) listed = []
     } catch {
       listed = []
     }
     try {
-      book = (await pullBook(host, chunk, locations, qualities)) as BookRow[]
+      book = (await pullBook(chunk, locations, qualities)) as BookRow[]
       if (!Array.isArray(book)) book = []
     } catch {
       book = []
@@ -282,7 +305,7 @@ function readHistory(rows: HistRow[], series: Map<string, HourPoint[]>) {
 
 async function readJson(url: string): Promise<{ status: number; body: unknown }> {
   const res = await fetch(url, {
-    headers: { Accept: "application/json" },
+    headers: { Accept: "application/json", "Accept-Encoding": "gzip, deflate" },
     signal: AbortSignal.timeout(20000),
   })
   if (res.status === 429) return { status: 429, body: null }
@@ -295,9 +318,12 @@ async function readJson(url: string): Promise<{ status: number; body: unknown }>
 
 export async function loadHourlyPrices(data: z.infer<typeof HourInput>) {
   const loc = [...new Set(data.locations)].map((name) => encodeURIComponent(name)).join(",")
-  const host = HOST
   const itemId = liveId(data.itemId)
-  const historyUrl = `${host}/api/v2/stats/history/${itemId}.json?locations=${loc}&qualities=${data.quality}&time-scale=1`
+  const historyUrl = marketStatsUrl(
+    "history",
+    itemId,
+    `locations=${loc}&qualities=${data.quality}&time-scale=1`,
+  )
   const historyRes = await readJson(historyUrl).catch(() => ({ status: 0, body: null }))
   if (historyRes.status === 429) return { series: [], fetchedAt: Date.now() }
   const bucket = new Map<string, HourPoint[]>()

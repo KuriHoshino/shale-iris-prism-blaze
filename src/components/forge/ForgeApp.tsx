@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react"
-import { BookOpen, Clock, Dices, GraduationCap, Hammer, Percent, Repeat, Sprout, Users } from "lucide-react"
+import { Clock, Dices, GraduationCap, Hammer, LayoutDashboard, Percent, Repeat, Sprout, Users } from "lucide-react"
 import { signIn } from "@/lib/auth/client"
 import { SignedIn, SignedOut, UserButton } from "@/lib/auth/gates"
 import { useCurrentUserState } from "@/lib/auth/use-current-user"
@@ -7,14 +7,15 @@ import { loadCraftRecents, saveCraftRecents } from "@/lib/forge/groups"
 import { priceWatchKey, useForge, type RecentSearch, type View } from "@/lib/forge/store"
 import { syncCatalogFromGitHub } from "@/lib/forge/remote"
 import { Bench } from "./Bench"
+import { Dashboard } from "./Dashboard"
 import { FarmLab } from "./Farm"
 import { FlipLab } from "./Flipper"
 import { LaborLab } from "./Labor"
 import { RecentLab } from "./Recent"
-import { Codex, RerollLab, ReturnFocusLab, StudyLab } from "./Labs"
+import { RerollLab, ReturnFocusLab, StudyLab } from "./Labs"
 
 const NAV: { id: View; label: string; icon: typeof Hammer }[] = [
-  { id: "codex", label: "Codex", icon: BookOpen },
+  { id: "dash", label: "Dashboard", icon: LayoutDashboard },
   { id: "bench", label: "Add Craft", icon: Hammer },
   { id: "flip", label: "Flipping", icon: Repeat },
   { id: "recent", label: "Recent", icon: Clock },
@@ -27,7 +28,7 @@ const NAV: { id: View; label: string; icon: typeof Hammer }[] = [
 
 export function ForgeApp() {
   const storedView = useForge((s) => s.view)
-  const view = NAV.some((entry) => entry.id === storedView) ? storedView : "bench"
+  const view = NAV.some((entry) => entry.id === storedView) ? storedView : "dash"
   const setView = useForge((s) => s.setView)
   const boot = useBootScreen()
   const { user } = useCurrentUserState()
@@ -38,7 +39,7 @@ export function ForgeApp() {
   }, [])
 
   useEffect(() => {
-    if (!NAV.some((entry) => entry.id === storedView)) setView("bench")
+    if (!NAV.some((entry) => entry.id === storedView)) setView("dash")
   }, [storedView, setView])
 
   useEffect(() => {
@@ -73,15 +74,37 @@ export function ForgeApp() {
     }
   }, [])
 
+  const page = NAV.find((entry) => entry.id === view) ?? NAV[0]
+
   return (
     <div className="min-h-screen bg-transparent text-parchment">
       <header className="sticky top-0 z-30 border-b border-line bg-[#12151b]/90 backdrop-blur-md">
-        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-3 py-3 sm:px-4">
+        <div className="page flex flex-wrap items-center gap-x-4 gap-y-3 py-4">
           <div className="min-w-0">
             <p className="font-display text-xl leading-none">Hearthforge</p>
-            <p className="mt-1 hidden text-xs text-muted sm:block">Albion crafting desk</p>
+            <p className="mt-1 hidden text-xs leading-normal text-muted sm:block">Albion crafting desk</p>
           </div>
-          <div className="flex items-center gap-2">
+          <nav className="order-3 flex w-full flex-wrap gap-x-2 gap-y-2 md:order-none md:w-auto md:flex-1">
+            {NAV.map((entry) => {
+              const Icon = entry.icon
+              const on = view === entry.id
+              return (
+                <button
+                  key={entry.id}
+                  type="button"
+                  onClick={() => setView(entry.id)}
+                  className={
+                    "inline-flex h-10 items-center gap-2 rounded-md border px-3 text-sm " +
+                    (on ? "border-line bg-panel text-parchment" : "border-transparent text-muted")
+                  }
+                >
+                  <Icon className="size-4" />
+                  {entry.label}
+                </button>
+              )
+            })}
+          </nav>
+          <div className="relative ml-auto flex items-center gap-2">
             <p className="text-xs text-muted">
               <span className="sr-only">Server</span>
               <span className="flex h-11 items-center rounded-lg border border-line bg-panel px-3 text-sm text-parchment">
@@ -103,28 +126,15 @@ export function ForgeApp() {
             </SignedIn>
           </div>
         </div>
-        <nav className="mx-auto flex max-w-6xl gap-2 overflow-x-auto px-3 pb-3 sm:px-4">
-          {NAV.map((entry) => {
-            const Icon = entry.icon
-            const on = view === entry.id
-            return (
-              <button
-                key={entry.id}
-                type="button"
-                onClick={() => setView(entry.id)}
-                className={
-                  "inline-flex h-10 shrink-0 items-center gap-2 rounded-md border px-3 text-sm " +
-                  (on ? "border-line bg-panel text-parchment" : "border-transparent text-muted")
-                }
-              >
-                <Icon className="size-4" />
-                {entry.label}
-              </button>
-            )
-          })}
-        </nav>
       </header>
-      <main className="mx-auto max-w-6xl px-3 py-4 pb-[max(2.5rem,env(safe-area-inset-bottom))] sm:px-4">
+      <main className="page flex flex-col gap-section py-8">
+        {view === "dash" ? null : (
+          <div>
+            <p className="eyebrow">Hearthforge</p>
+            <h1 className="page-title">{page.label}</h1>
+          </div>
+        )}
+        {view === "dash" ? <Dashboard onOpen={setView} /> : null}
         {view === "bench" ? <Bench /> : null}
         {view === "flip" ? <FlipLab /> : null}
         {view === "farm" ? <FarmLab /> : null}
@@ -132,13 +142,12 @@ export function ForgeApp() {
         {view === "returns" ? <ReturnFocusLab /> : null}
         {view === "study" ? <StudyLab /> : null}
         {view === "reroll" ? <RerollLab /> : null}
-        {view === "codex" ? <Codex /> : null}
         {view === "recent" ? <RecentLab /> : null}
-        <p className="mt-8 max-w-2xl text-xs text-muted">
-          Return rate, focus, study fame, nutrition, and repair follow the current Albion rules. Prices refresh about
-          once a minute. Not affiliated with Sandbox Interactive.
-        </p>
       </main>
+      <footer className="page pb-10 text-xs leading-relaxed text-muted">
+        Return rate, focus, study fame, nutrition, and repair follow the current Albion rules. Prices refresh about
+        once a minute. Not affiliated with Sandbox Interactive.
+      </footer>
       {boot}
     </div>
   )

@@ -1,0 +1,9 @@
+[
+  {
+    "item_id": "T4_BAG",
+    "city": "Martlock",
+    "quality": 1,
+    "sell": [{ "price": 5553, "amount": 4, "updated_at": "2026-01-01T00:00:00" }],
+    "buy": [{ "price": 2515, "amount": 2, "updated_at": "2026-01-01T00:00:00" }]
+  }
+]

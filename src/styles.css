@@ -12,6 +12,60 @@
   --color-muted: #a7adba;
   --color-sage: #8fb9a0;
   --color-ember: #e08b78;
+  --radius-lg: 0.75rem;
+  --radius-card: 0.75rem;
+  --spacing-section: 2rem;
+  --spacing-page: 1.25rem;
+}
+
+@layer components {
+  .page {
+    width: 100%;
+    max-width: 72rem;
+    margin-inline: auto;
+    padding-inline: var(--spacing-page);
+  }
+
+  @media (min-width: 768px) {
+    .page {
+      padding-inline: 2rem;
+    }
+  }
+
+  .eyebrow {
+    font-size: 0.75rem;
+    line-height: 1.4;
+    letter-spacing: 0.04em;
+    color: var(--color-muted);
+  }
+
+  .page-title {
+    margin-top: 0.5rem;
+    font-family: var(--font-display);
+    font-size: 1.875rem;
+    line-height: 1.2;
+  }
+
+  .lead {
+    margin-top: 1rem;
+    max-width: 40rem;
+    line-height: 1.7;
+    color: var(--color-muted);
+  }
+
+  .thin-scroll {
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-line) transparent;
+  }
+
+  .thin-scroll::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .thin-scroll::-webkit-scrollbar-thumb {
+    background: var(--color-line);
+    border-radius: 999px;
+  }
 }
 
 @layer base {
@@ -58,6 +112,7 @@
   h2,
   h3,
   .font-display {
+    line-height: 1.25;
     text-shadow:
       0 0 10px rgba(0, 255, 220, 0.55),
       0 0 22px rgba(255, 45, 175, 0.35);
@@ -70,7 +125,18 @@
   dt,
   dd,
   span {
+    line-height: 1.5;
     text-shadow: 0 0 8px rgba(120, 230, 255, 0.28);
+  }
+
+  article.rounded-lg,
+  section.rounded-lg {
+    transition: border-color 150ms ease;
+  }
+
+  article.rounded-lg:hover,
+  section.rounded-lg:hover {
+    border-color: color-mix(in srgb, var(--color-parchment) 18%, var(--color-line));
   }
 
   .text-brass {

@@ -91,9 +91,23 @@ export function returnRate(bonus: number): number {
   return bonus / (100 + bonus)
 }
 
+const UNIQUE_FOCUS = 250
+
+/** Group bonus one specialization level gives the other crafts in that node. */
+export function specGroupBonus(itemId: string, category: string): { focus: number; quality: number } {
+  const bare = itemId.split("#")[0].replace(/@\d+$/, "")
+  if (/^T\d_(HEAD|ARMOR|SHOES)_LEATHER_(?!SET\d)/.test(bare)) return { focus: 12.5, quality: 0.3125 }
+  if (category === "potion" || /_ALCOHOL$/.test(bare)) {
+    const specialized = /_(ACID|MOB_RESET|CLEANSE2|BERSERK|GATHER|LAVA|LIFEWARD|TORNADO)$/.test(bare)
+    return { focus: specialized ? 11.25 : 22.5, quality: 0 }
+  }
+  return { focus: 30, quality: 0.75 }
+}
+
 /** Focus cost = base × 0.5 ^ (efficiency / 10000). The station shows the nearest whole point. */
-export function focusFromSpecs(base: number, mastery: number, specialist: number, siblings: number) {
-  const efficiency = Math.max(0, mastery) * 30 + Math.max(0, specialist) * 280 + Math.max(0, siblings) * 30
+export function focusFromSpecs(base: number, mastery: number, specialist: number, siblings: number, groupFocus = 30) {
+  const efficiency =
+    Math.max(0, mastery) * 30 + Math.max(0, specialist) * (UNIQUE_FOCUS + groupFocus) + Math.max(0, siblings) * groupFocus
   const raw = base * Math.pow(0.5, efficiency / 10000)
   return { efficiency, cost: Math.round(raw) }
 }
@@ -240,6 +254,7 @@ export function craftMath(opts: {
   mastery: number
   specialist: number
   siblings: number
+  itemId?: string
   focusOverride: number | null
   premium: boolean
   buyMode: BuyMode
@@ -269,7 +284,8 @@ export function craftMath(opts: {
   const fee = opts.flip ? 0 : stationFee(opts.variant.value, items, opts.tier, opts.stationRate)
   const nut = nutrition(opts.variant.value, items, opts.tier)
   const baseFocus = opts.focusOverride != null && opts.focusOverride >= 0 ? opts.focusOverride : opts.variant.focus
-  const spec = focusFromSpecs(baseFocus, opts.mastery, opts.specialist, opts.siblings)
+  const group = specGroupBonus(opts.itemId ?? "", opts.category)
+  const spec = focusFromSpecs(baseFocus, opts.mastery, opts.specialist, opts.siblings, group.focus)
   const focusEach = opts.focus ? spec.cost : 0
   const dailyMult = opts.daily === 20 ? 1.2 : opts.daily === 10 ? 1.1 : 1
   const studyEach =
