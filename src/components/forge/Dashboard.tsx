@@ -14,7 +14,7 @@ export function Dashboard({ onOpen }: { onOpen: (view: View) => void }) {
   const [latest, setLatest] = useState<{ title: string; bullets: string[] } | null>(null)
 
   useEffect(() => {
-    void fetch("/changelog.json")
+    void fetch(`${import.meta.env.BASE_URL}changelog.json`)
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
         const entry = data?.entries?.[0]
