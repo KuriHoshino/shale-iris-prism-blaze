@@ -158,19 +158,22 @@ export function FlipLab() {
           const next: PriceBook = {}
           let got = 0
           for (let index = 0; index < idList.length; index += 80) {
-            const request = {
-              server,
-              itemIds: idList.slice(index, index + 80),
-              locations: places,
-              qualities: [quality],
+            const chunk = idList.slice(index, index + 80)
+            const stones = chunk.filter((id) => /RUNE|SOUL|RELIC/.test(id))
+            const gear = chunk.filter((id) => !/RUNE|SOUL|RELIC/.test(id))
+            const requests = [
+              ...(gear.length ? [{ server, itemIds: gear, locations: places, qualities: [quality] }] : []),
+              ...(stones.length ? [{ server, itemIds: stones, locations: places, qualities: [1] }] : []),
+            ]
+            for (const request of requests) {
+              const marketBase = marketApiBase()
+              const result = import.meta.env.VITE_PAGES === "1" ? await loadMarketPrices(request) : await fetchMarketPrices({ data: request })
+              if (!marketBase) throw new Error("missing market base")
+              Object.assign(next, result.quotes)
+              got += Object.keys(result.quotes).length
+              if (cancel) return
+              if (Object.keys(result.quotes).length) setBook((prev) => ({ ...(prev ?? {}), ...next }))
             }
-            const marketBase = marketApiBase()
-            const result = import.meta.env.VITE_PAGES === "1" ? await loadMarketPrices(request) : await fetchMarketPrices({ data: request })
-            if (!marketBase) throw new Error("missing market base")
-            Object.assign(next, result.quotes)
-            got += Object.keys(result.quotes).length
-            if (cancel) return
-            if (Object.keys(result.quotes).length) setBook((prev) => ({ ...(prev ?? {}), ...next }))
           }
           if (!cancel) {
             setFetchedAt(Date.now())
@@ -341,7 +344,7 @@ export function FlipLab() {
     return best
   }
 
-  const field = "h-9 w-full rounded-md border border-white/10 bg-[#1a1d27] px-2 text-sm text-parchment outline-none"
+  const field = "h-9 w-full rounded-md border border-line bg-ink px-2 text-sm text-parchment outline-none"
 
   const flips = tree
     .flatMap((section) => section.lines.flatMap((line) => line.rows))
@@ -375,35 +378,35 @@ export function FlipLab() {
   }
 
   return (
-    <div className="flex flex-col overflow-hidden rounded-lg border border-line bg-[#0c0e14]">
-      <div className="border-b border-line bg-[#101218] px-3 py-3">
+    <div className="flex flex-col overflow-hidden rounded-lg border border-line bg-ink">
+      <div className="border-b border-line bg-panel px-3 py-3">
         <div className="flex flex-wrap items-center gap-2">
           <p className="mr-2 text-xs text-muted">Best flip</p>
           <button
             type="button"
             onClick={() => setRank("profit")}
-            className={"h-10 rounded-md border px-3 text-sm " + (rank === "profit" ? "border-violet-400 bg-[#6d4aff] text-white" : "border-white/10 text-muted")}
+            className={"h-10 rounded-md border px-3 text-sm " + (rank === "profit" ? "border-brass bg-brass text-ink" : "border-line text-muted")}
           >
             Best profit
           </button>
           <button
             type="button"
             onClick={() => setRank("roi")}
-            className={"h-10 rounded-md border px-3 text-sm " + (rank === "roi" ? "border-violet-400 bg-[#6d4aff] text-white" : "border-white/10 text-muted")}
+            className={"h-10 rounded-md border px-3 text-sm " + (rank === "roi" ? "border-brass bg-brass text-ink" : "border-line text-muted")}
           >
             Best ROI
           </button>
           <button
             type="button"
             onClick={() => patch({ premium: true })}
-            className={"h-10 rounded-md border px-3 text-sm " + (premium ? "border-violet-400 bg-[#6d4aff] text-white" : "border-white/10 text-muted")}
+            className={"h-10 rounded-md border px-3 text-sm " + (premium ? "border-brass bg-brass text-ink" : "border-line text-muted")}
           >
             Premium
           </button>
           <button
             type="button"
             onClick={() => patch({ premium: false })}
-            className={"h-10 rounded-md border px-3 text-sm " + (!premium ? "border-violet-400 bg-[#6d4aff] text-white" : "border-white/10 text-muted")}
+            className={"h-10 rounded-md border px-3 text-sm " + (!premium ? "border-brass bg-brass text-ink" : "border-line text-muted")}
           >
             No premium
           </button>
@@ -414,7 +417,7 @@ export function FlipLab() {
         </p>
       </div>
       <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
-      <aside className="flex w-full shrink-0 flex-col border-b border-line bg-[#101218] lg:w-64 lg:border-r lg:border-b-0">
+      <aside className="flex w-full shrink-0 flex-col border-b border-line bg-panel lg:w-64 lg:border-r lg:border-b-0">
         <div className="border-b border-line px-3 py-3">
           <p className="text-[11px] font-semibold tracking-wide text-muted uppercase">Flip route</p>
           <p className="mt-2 text-[12px] text-muted">All cities are compared. Each row shows the city to buy in.</p>
@@ -427,7 +430,7 @@ export function FlipLab() {
             <span className="text-muted">Tier & enchantment</span>
             <button
               type="button"
-              className="text-violet-300"
+              className="text-brass"
               onClick={() => setPicks(picks.length === TIERS.length * ENCHANTS.length ? [] : TIERS.flatMap((tier) => ENCHANTS.map((enchant) => pickKey(tier, enchant))))}
             >
               {picks.length === TIERS.length * ENCHANTS.length ? "Clear" : "Select all"}
@@ -446,7 +449,7 @@ export function FlipLab() {
                       onClick={() => togglePick(key)}
                       className={
                         "h-7 rounded-md border text-[11px] " +
-                        (on ? "border-violet-400 bg-[#6d4aff] text-white" : "border-white/10 bg-[#1a1d27] text-muted")
+                        (on ? "border-brass bg-brass text-ink" : "border-line bg-ink text-muted")
                       }
                     >
                       {tier}.{enchant}
@@ -463,7 +466,7 @@ export function FlipLab() {
             <button
               type="button"
               onClick={() => setDealPath("listed")}
-              className={"h-10 rounded-md border px-2 text-[11px] " + (dealPath === "listed" ? "border-violet-400 bg-[#6d4aff] text-white" : "border-white/10 text-muted")}
+              className={"h-10 rounded-md border px-2 text-[11px] " + (dealPath === "listed" ? "border-brass bg-brass text-ink" : "border-line text-muted")}
             >
               Buy this enchant
             </button>
@@ -477,7 +480,7 @@ export function FlipLab() {
                 }}
                 className={
                   "h-10 rounded-md border px-2 text-[11px] " +
-                  (dealPath === "upgrade" && fromEnchant === start ? "border-violet-400 bg-[#6d4aff] text-white" : "border-white/10 text-muted")
+                  (dealPath === "upgrade" && fromEnchant === start ? "border-brass bg-brass text-ink" : "border-line text-muted")
                 }
               >
                 Upgrade from .{start}
@@ -519,7 +522,7 @@ export function FlipLab() {
                   <button
                     type="button"
                     onClick={() => setPicks(config.picks)}
-                    className="w-full rounded-md px-2 py-1.5 text-left text-xs text-parchment hover:bg-white/5"
+                    className="w-full rounded-md px-2 py-1.5 text-left text-xs text-parchment hover:bg-panel-2"
                   >
                     {config.name}
                   </button>
@@ -537,7 +540,7 @@ export function FlipLab() {
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               placeholder="Search flip items..."
-              className="h-10 w-full rounded-lg border border-white/10 bg-[#12141c] pr-3 pl-9 text-sm text-parchment outline-none"
+              className="h-10 w-full rounded-lg border border-line bg-ink pr-3 pl-9 text-sm text-parchment outline-none"
             />
           </label>
           <p className="shrink-0 text-xs text-muted">{loading ? "Loading prices" : `${shownCount} with prices`}</p>
@@ -566,14 +569,14 @@ export function FlipLab() {
             const money = rowMoney(row, count)
             const on = Boolean(picked[key])
             return (
-              <li key={key} className="rounded-lg border border-white/10 p-3">
+              <li key={key} className="rounded-lg border border-line p-3">
                 <div className="flex items-start gap-3">
                   <input
                     type="checkbox"
                     checked={on}
                     onChange={() => setPicked((current) => ({ ...current, [key]: !current[key] }))}
                     aria-label={`Pick ${row.name}`}
-                    className="mt-1 size-5 accent-violet-400"
+                    className="mt-1 size-5 accent-brass"
                   />
                   <div className="flex min-w-0 flex-1 items-center gap-2">
                     <ItemIcon id={row.id} enchant={row.enchant} quality={quality} size={40} />
@@ -601,7 +604,7 @@ export function FlipLab() {
                     value={count}
                     inputMode="numeric"
                     onChange={(event) => setAmounts((current) => ({ ...current, [key]: Math.max(1, Number(event.target.value) || 1) }))}
-                    className="h-11 w-20 rounded-md border border-white/10 bg-[#12141c] px-2 text-right text-base text-parchment tabular-nums"
+                    className="h-11 w-20 rounded-md border border-line bg-ink px-2 text-right text-base text-parchment tabular-nums"
                   />
                 </label>
               </li>
@@ -612,7 +615,7 @@ export function FlipLab() {
         <div className="hidden overflow-x-auto md:block">
           <table className="w-full min-w-[980px] text-left text-sm">
             <thead className="text-[11px] tracking-wide text-muted uppercase">
-              <tr className="border-b border-white/10">
+              <tr className="border-b border-line">
                 <th className="w-8 px-3 py-2" />
                 <th className="px-2 py-2 font-medium">Item / tier / quality</th>
                 <th className="px-2 py-2 font-medium">Buy in</th>
@@ -633,14 +636,14 @@ export function FlipLab() {
                 const money = rowMoney(row, count)
                 const on = Boolean(picked[key])
                 return (
-                  <tr key={key} className="border-b border-white/5">
+                  <tr key={key} className="border-b border-line">
                     <td className="px-3 py-3">
                       <input
                         type="checkbox"
                         checked={on}
                         onChange={() => setPicked((current) => ({ ...current, [key]: !current[key] }))}
                         aria-label={`Pick ${row.name}`}
-                        className="size-4 accent-violet-400"
+                        className="size-4 accent-brass"
                       />
                     </td>
                     <td className="px-2 py-3">
@@ -672,7 +675,7 @@ export function FlipLab() {
                         value={count}
                         inputMode="numeric"
                         onChange={(event) => setAmounts((current) => ({ ...current, [key]: Math.max(1, Number(event.target.value) || 1) }))}
-                        className="h-9 w-16 rounded-md border border-white/10 bg-[#12141c] px-2 text-right tabular-nums"
+                        className="h-9 w-16 rounded-md border border-line bg-ink px-2 text-right tabular-nums"
                       />
                     </td>
                     <td className="px-2 py-3 text-xs text-muted">{row.age || "—"}</td>
@@ -683,9 +686,9 @@ export function FlipLab() {
           </table>
           {view.length === 0 ? <p className="px-4 py-6 text-sm text-muted">No priced flip for this route yet.</p> : null}
         </div>
-        <div className="flex flex-col gap-3 border-t border-white/10 px-3 py-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-3 border-t border-line px-3 py-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
           <div className="flex flex-wrap items-center gap-2">
-            <button type="button" disabled={safePage === 0} onClick={() => setPage(safePage - 1)} className="h-10 rounded-md border border-white/10 px-3 text-sm disabled:opacity-40">
+            <button type="button" disabled={safePage === 0} onClick={() => setPage(safePage - 1)} className="h-10 rounded-md border border-line px-3 text-sm disabled:opacity-40">
               Prev
             </button>
             {Array.from({ length: pageCount }, (_, index) => (
@@ -693,12 +696,12 @@ export function FlipLab() {
                 key={index}
                 type="button"
                 onClick={() => setPage(index)}
-                className={"h-10 min-w-10 rounded-md border px-2 text-sm " + (index === safePage ? "border-violet-400 bg-[#6d4aff] text-white" : "border-white/10 text-muted")}
+                className={"h-10 min-w-10 rounded-md border px-2 text-sm " + (index === safePage ? "border-brass bg-brass text-ink" : "border-line text-muted")}
               >
                 {index + 1}
               </button>
             ))}
-            <button type="button" disabled={safePage >= pageCount - 1} onClick={() => setPage(safePage + 1)} className="h-10 rounded-md border border-white/10 px-3 text-sm disabled:opacity-40">
+            <button type="button" disabled={safePage >= pageCount - 1} onClick={() => setPage(safePage + 1)} className="h-10 rounded-md border border-line px-3 text-sm disabled:opacity-40">
               Next
             </button>
           </div>
@@ -711,7 +714,7 @@ export function FlipLab() {
           </button>
         </div>
         {planned ? (
-          <div className="border-t border-white/10 px-3 py-3 text-sm">
+          <div className="border-t border-line px-3 py-3 text-sm">
             {(() => {
               const chosen = flips.filter((row) => picked[`${row.id}|${row.enchant}`])
               if (!chosen.length) return <p className="text-muted">Pick at least one item.</p>

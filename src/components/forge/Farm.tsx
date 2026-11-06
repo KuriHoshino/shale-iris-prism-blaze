@@ -233,7 +233,7 @@ function CropBoard() {
                 {watering ? "Watered" : "Water"}
               </button>
             </div>
-            <p className="mt-2 text-right text-sm font-semibold tabular-nums text-brass">
+            <p className={"mt-2 text-right text-sm font-semibold tabular-nums " + (priced && (watering ? priced.wateredPlot : priced.unwateredPlot) < 0 ? "text-ember" : "text-sage")}>
               {priced ? silver(watering ? priced.wateredPlot : priced.unwateredPlot) : "No data"}
               <span className="ml-2 text-xs font-normal text-muted">plot</span>
             </p>
@@ -442,7 +442,7 @@ function AnimalBoard() {
                 {care ? "Nurtured" : "Nurture"}
               </button>
             </div>
-            <p className="mt-2 text-right text-sm font-semibold tabular-nums text-brass">
+            <p className={"mt-2 text-right text-sm font-semibold tabular-nums " + (profitEach != null && profitEach < 0 ? "text-ember" : "text-sage")}>
               {profitEach == null ? "No data" : silver(profitEach * volume)}
               <span className="ml-2 text-xs font-normal text-muted">{care ? `${row.nurtured}%` : `${row.offspring}% offspring`}</span>
             </p>
@@ -513,7 +513,7 @@ function MasteryBar({ title, value, max, open, onEdit }: { title: string; value:
       <p className="min-w-0 flex-1 text-base font-semibold text-parchment">
         {title} ({exact(value)}/{exact(max)})
       </p>
-      <button type="button" onClick={onEdit} className="h-9 rounded-md bg-sky-600 px-3 text-sm font-semibold text-white">
+      <button type="button" onClick={onEdit} className="h-9 rounded-md bg-brass px-3 text-sm font-semibold text-ink">
         {open ? "Close" : "Edit masteries"}
       </button>
     </div>
@@ -525,8 +525,8 @@ function Switch({ label, on, text, onClick }: { label: string; on: boolean; text
     <div className="min-w-0">
       <p className="text-sm text-parchment">{label}</p>
       <button type="button" onClick={onClick} className="mt-1 flex items-center gap-2 text-sm text-muted">
-        <span className={"relative h-6 w-11 shrink-0 rounded-full " + (on ? "bg-sky-500" : "bg-zinc-600")}>
-          <span className={"absolute top-0.5 size-5 rounded-full bg-white " + (on ? "left-5" : "left-0.5")} />
+        <span className={"relative h-6 w-11 shrink-0 rounded-full " + (on ? "bg-brass" : "bg-panel-2")}>
+          <span className={"absolute top-0.5 size-5 rounded-full bg-parchment " + (on ? "left-5" : "left-0.5")} />
         </span>
         {text}
       </button>

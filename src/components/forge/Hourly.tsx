@@ -7,14 +7,14 @@ import { useForge, type PriceBook } from "@/lib/forge/store"
 import { silver, exact, priceAge } from "./fields"
 
 const STROKE: Record<string, string> = {
-  Thetford: "#8fbf7a",
-  Lymhurst: "#3dbe8c",
-  Bridgewatch: "#e0a15a",
-  Martlock: "#7eb6d6",
-  "Fort Sterling": "#d5d0c8",
-  Caerleon: "#e07a5f",
-  Brecilien: "#b79ad6",
-  "Black Market": "#d6b36a",
+  Thetford: "#9ece6a",
+  Lymhurst: "#2dd4bf",
+  Bridgewatch: "#bb9af7",
+  Martlock: "#7aa2f7",
+  "Fort Sterling": "#c0caf5",
+  Caerleon: "#f7768e",
+  Brecilien: "#9ece6a",
+  "Black Market": "#565f89",
 }
 
 function soldInDay(points: { time: string; count: number }[]) {

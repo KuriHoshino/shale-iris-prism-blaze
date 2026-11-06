@@ -67,7 +67,7 @@ export function ItemIcon({
       height={size}
       decoding="async"
       loading={size >= 48 ? "eager" : "lazy"}
-      className="shrink-0 rounded-md bg-[#1a1d27] object-contain"
+      className="shrink-0 rounded-md bg-ink object-contain"
       style={{ width: size, height: size }}
       onError={() => setStep((current) => current + 1)}
     />

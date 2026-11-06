@@ -9,7 +9,7 @@ export const Route = createRootRoute({
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover" },
       { title: "Hearthforge" },
-      { name: "theme-color", content: "#14110e" },
+      { name: "theme-color", content: "#0B0C10" },
     ],
     links: [
       { rel: "icon", type: "image/svg+xml", href: "/favicon.svg" },

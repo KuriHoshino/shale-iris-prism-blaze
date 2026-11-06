@@ -1,5 +1,5 @@
+import { useEffect, useState } from "react"
 import { Clock, Hammer, Repeat, Sprout, Users, type LucideIcon } from "lucide-react"
-import changelog from "@/lib/forge/changelog.json"
 import type { View } from "@/lib/forge/store"
 
 const TOOLS: { id: View; title: string; note: string; icon: LucideIcon }[] = [
@@ -11,7 +11,17 @@ const TOOLS: { id: View; title: string; note: string; icon: LucideIcon }[] = [
 ]
 
 export function Dashboard({ onOpen }: { onOpen: (view: View) => void }) {
-  const latest = changelog[0]
+  const [latest, setLatest] = useState<{ title: string; bullets: string[] } | null>(null)
+
+  useEffect(() => {
+    void fetch("/changelog.json")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        const entry = data?.entries?.[0]
+        if (entry?.title) setLatest({ title: entry.title, bullets: entry.bullets ?? [] })
+      })
+      .catch(() => undefined)
+  }, [])
 
   return (
     <div className="grid gap-section">
@@ -45,7 +55,7 @@ export function Dashboard({ onOpen }: { onOpen: (view: View) => void }) {
             <div className="thin-scroll mt-6 max-h-52 overflow-y-auto pr-3">
               <p className="font-semibold text-parchment">{latest?.title}</p>
               <ul className="mt-4 list-disc space-y-4 pl-5 text-sm leading-relaxed text-muted">
-                {latest?.items.map((item) => (
+                {(latest?.bullets ?? []).map((item) => (
                   <li key={item}>{item}</li>
                 ))}
               </ul>

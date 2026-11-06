@@ -33,7 +33,7 @@ export function evaluateLine(line: Line, state: ReturnType<typeof useForge.getSt
   const sellSide = state.sellMode === "instant" ? "buy" : "sell"
   const productId = marketId(item.id, variant.enchant)
   const sellAt = line.sellAt || state.sellCity
-  const productSide = "sell" as const
+  const productSide = sellSide
   const product = lookup(state.prices, productId, sellAt, state.quality, productSide, line.productOverride)
   const notes: string[] = []
   if (product.from) notes.push(`${item.name} from ${product.from}`)
@@ -264,7 +264,7 @@ export function Bench() {
   }
 
   const productId = marketId(item.id, variant.enchant)
-  const itemSide = "sell" as const
+  const itemSide = sellSide
   const profitClass = math.profit == null ? "text-parchment" : math.profit >= 0 ? "text-sage" : "text-ember"
   const mergeRows = plan.rows.filter((row) => merged.includes(row.uid))
   const mergeTotal = mergeRows.length > 0 && mergeRows.every((row) => row.profit != null)

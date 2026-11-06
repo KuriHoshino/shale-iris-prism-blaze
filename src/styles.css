@@ -3,15 +3,17 @@
 @theme {
   --font-display: "Fraunces", Georgia, serif;
   --font-sans: "Source Sans 3", "Segoe UI", sans-serif;
-  --color-ink: #121418;
-  --color-panel: #1a1d24;
-  --color-panel-2: #22262e;
-  --color-line: #343a46;
-  --color-brass: #d4b483;
-  --color-parchment: #f4f1ea;
-  --color-muted: #a7adba;
-  --color-sage: #8fb9a0;
-  --color-ember: #e08b78;
+  --color-ink: #0b0c10;
+  --color-panel: #1a1b26;
+  --color-panel-2: #24283b;
+  --color-line: #2c3245;
+  --color-brass: #bb9af7;
+  --color-parchment: #c0caf5;
+  --color-muted: #7aa2f7;
+  --color-dim: #565f89;
+  --color-teal: #2dd4bf;
+  --color-sage: #9ece6a;
+  --color-ember: #f7768e;
   --radius-lg: 0.75rem;
   --radius-card: 0.75rem;
   --spacing-section: 2rem;
@@ -75,7 +77,7 @@
   }
 
   html {
-    background-color: #07060f;
+    background-color: var(--color-ink);
     color: var(--color-parchment);
     overflow-x: clip;
   }
@@ -85,19 +87,7 @@
     min-height: 100vh;
     font-family: var(--font-sans);
     color: var(--color-parchment);
-    background-color: #07060f;
-    background-image:
-      radial-gradient(ellipse 80% 50% at 0% 0%, rgba(0, 255, 214, 0.45), transparent 55%),
-      radial-gradient(ellipse 70% 48% at 100% 0%, rgba(255, 45, 175, 0.42), transparent 52%),
-      radial-gradient(ellipse 75% 50% at 50% 100%, rgba(92, 70, 255, 0.4), transparent 55%),
-      linear-gradient(128deg, #042824 0%, #160818 42%, #1a0820 68%, #08101c 100%);
-    background-attachment: scroll;
-  }
-
-  @media (min-width: 768px) {
-    body {
-      background-attachment: fixed;
-    }
+    background-color: var(--color-ink);
   }
 
   @media (max-width: 640px) {
@@ -113,9 +103,7 @@
   h3,
   .font-display {
     line-height: 1.25;
-    text-shadow:
-      0 0 10px rgba(0, 255, 220, 0.55),
-      0 0 22px rgba(255, 45, 175, 0.35);
+    color: var(--color-parchment);
   }
 
   p,
@@ -126,57 +114,90 @@
   dd,
   span {
     line-height: 1.5;
-    text-shadow: 0 0 8px rgba(120, 230, 255, 0.28);
+  }
+
+  input,
+  select,
+  textarea {
+    font-family: inherit;
+    background-color: var(--color-ink);
+    color: var(--color-parchment);
+  }
+
+  input:focus,
+  select:focus,
+  textarea:focus {
+    border-color: var(--color-brass);
+    outline: 1px solid var(--color-brass);
+  }
+
+  :disabled {
+    color: var(--color-dim);
+  }
+
+  tbody tr:nth-child(odd) {
+    background-color: var(--color-ink);
+  }
+
+  tbody tr:nth-child(even) {
+    background-color: var(--color-panel);
+  }
+
+  .mist {
+    position: fixed;
+    z-index: 0;
+    border-radius: 999px;
+    pointer-events: none;
+    filter: blur(120px);
+  }
+
+  .mist-teal {
+    top: -8rem;
+    left: -8rem;
+    width: 600px;
+    height: 600px;
+    background: var(--color-teal);
+    opacity: 0.1;
+  }
+
+  .mist-violet {
+    right: -6rem;
+    bottom: -8rem;
+    width: 500px;
+    height: 500px;
+    background: var(--color-brass);
+    opacity: 0.1;
   }
 
   article.rounded-lg,
-  section.rounded-lg {
+  section.rounded-lg,
+  button.rounded-lg {
     transition: border-color 150ms ease;
   }
 
   article.rounded-lg:hover,
-  section.rounded-lg:hover {
-    border-color: color-mix(in srgb, var(--color-parchment) 18%, var(--color-line));
-  }
-
-  .text-brass {
-    text-shadow: 0 0 10px rgba(224, 190, 120, 0.7);
-  }
-
-  .text-sage {
-    text-shadow: 0 0 12px rgba(120, 255, 190, 0.65);
-  }
-
-  .text-ember {
-    text-shadow: 0 0 12px rgba(255, 90, 140, 0.65);
-  }
-
-  input,
-  select {
-    font-family: inherit;
+  section.rounded-lg:hover,
+  button.rounded-lg:hover {
+    border-color: var(--color-brass);
   }
 }
 
 @layer utilities {
   .bg-panel {
-    background-color: #1a1d24;
-    background-image: linear-gradient(180deg, #22262f 0%, #171a21 100%);
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    background-color: var(--color-panel);
   }
 
   .bg-panel-2 {
-    background-color: #22262e;
-    background-image: linear-gradient(180deg, #2a303a 0%, #1c2028 100%);
+    background-color: var(--color-panel-2);
   }
 
   .bg-ink {
-    background-color: #12151b;
-    background-image: linear-gradient(180deg, #1a1e26 0%, #101318 100%);
+    background-color: var(--color-ink);
   }
 
   .bg-brass {
-    background-color: #c6a36a;
-    background-image: linear-gradient(180deg, #e4d0aa 0%, #c6a36a 100%);
-    color: #1a140c;
+    background-color: var(--color-brass);
+    background-image: linear-gradient(180deg, var(--color-brass) 0%, var(--color-muted) 100%);
+    color: var(--color-ink);
   }
 }

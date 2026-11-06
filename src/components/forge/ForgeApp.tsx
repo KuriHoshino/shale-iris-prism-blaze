@@ -77,8 +77,10 @@ export function ForgeApp() {
   const page = NAV.find((entry) => entry.id === view) ?? NAV[0]
 
   return (
-    <div className="min-h-screen bg-transparent text-parchment">
-      <header className="sticky top-0 z-30 border-b border-line bg-[#12151b]/90 backdrop-blur-md">
+    <div className="relative min-h-screen bg-transparent text-parchment">
+      <div className="mist mist-teal" />
+      <div className="mist mist-violet" />
+      <header className="sticky top-0 z-30 border-b border-line bg-panel/90 backdrop-blur-md">
         <div className="page flex flex-wrap items-center gap-x-4 gap-y-3 py-4">
           <div className="min-w-0">
             <p className="font-display text-xl leading-none">Hearthforge</p>
@@ -127,7 +129,7 @@ export function ForgeApp() {
           </div>
         </div>
       </header>
-      <main className="page flex flex-col gap-section py-8">
+      <main className="page relative z-10 flex flex-col gap-section py-8">
         {view === "dash" ? null : (
           <div>
             <p className="eyebrow">Hearthforge</p>
@@ -144,7 +146,7 @@ export function ForgeApp() {
         {view === "reroll" ? <RerollLab /> : null}
         {view === "recent" ? <RecentLab /> : null}
       </main>
-      <footer className="page pb-10 text-xs leading-relaxed text-muted">
+      <footer className="page relative z-10 pb-10 text-xs leading-relaxed text-muted">
         Return rate, focus, study fame, nutrition, and repair follow the current Albion rules. Prices refresh about
         once a minute. Not affiliated with Sandbox Interactive.
       </footer>
@@ -191,7 +193,7 @@ function useBootScreen() {
   return (
     <div
       className={
-        "fixed inset-0 z-50 flex flex-col items-center justify-center bg-[#0c0a12] transition-opacity duration-200 " +
+        "fixed inset-0 z-50 flex flex-col items-center justify-center bg-ink transition-opacity duration-200 " +
         (phase === "out" ? "pointer-events-none opacity-0" : "opacity-100")
       }
     >

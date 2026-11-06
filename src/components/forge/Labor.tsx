@@ -355,7 +355,7 @@ function JournalDesk() {
           <article key={row.tier} className="rounded-lg border border-line bg-panel p-3">
             <div className="flex items-center justify-between gap-2">
               <p className="font-semibold">T{row.tier} {job.name}</p>
-              <p className="text-sm font-semibold tabular-nums text-brass">{row.profit == null ? "No data" : silver(row.profit)}</p>
+              <p className={"text-sm font-semibold tabular-nums " + (row.profit != null && row.profit < 0 ? "text-ember" : "text-sage")}>{row.profit == null ? "No data" : silver(row.profit)}</p>
             </div>
             <p className="text-xs text-muted">{pct(row.rate)} return · {exact(row.amount)} materials</p>
             <div className="mt-3 grid grid-cols-2 gap-3">
